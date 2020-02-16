@@ -105,6 +105,10 @@ std::shared_ptr<source2::resource::Block> resource::Resource::ConstructFromType(
 		return std::make_shared<source2::resource::ResourceEditInfo>();
 	else if(input == "RERL")
 		return std::make_shared<source2::resource::ResourceExtRefList>();
+	else if(input == "VBIB")
+		return std::make_shared<source2::resource::VBIB>();
+	//else if(input == "NTRO")
+	//	return std::make_shared<source2::resource::NTRO>();
 	// TODO: Implement other types
 	throw std::runtime_error{"Support for type " +input +" not yet implemented!"};
 }

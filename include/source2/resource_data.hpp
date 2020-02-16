@@ -8,8 +8,11 @@
 #include "block.hpp"
 #include <string>
 #include <vector>
+#include <optional>
 #include <unordered_map>
 #include <mathutil/uvec.h>
+
+#undef GetObject
 
 class DataStream;
 namespace util {using GUID = std::array<uint8_t,16>;};
@@ -112,33 +115,129 @@ namespace source2::resource
 		DeferredResource
 	};
 
+	using BinaryBlob = std::vector<uint8_t>;
 	class KVValue
 	{
 	public:
-		KVValue(KVType type,const std::shared_ptr<void> &value)
-			: m_type{type},m_object{value}
-		{}
-	private:
-		KVType m_type = KVType::STRING_MULTI;
+		KVValue(KVType type,const std::shared_ptr<void> &value,KVFlag flags=KVFlag::None);
+		void *GetObject();
+		const void *GetObject() const;
+		KVFlag GetFlags() const;
+		virtual KVType GetType() const=0;
+	protected:
 		std::shared_ptr<void> m_object = nullptr;
+		KVFlag m_flags = KVFlag::None;
 	};
 
-	class KVFlaggedValue
+	class KVValueNull
 		: public KVValue
 	{
 	public:
-		KVFlaggedValue(KVType type,const std::shared_ptr<void> &value)
-			: KVValue{type,value}
-		{}
-		KVFlaggedValue(KVType type,KVFlag flag,const std::shared_ptr<void> &value)
-			: KVValue{type,value},m_flag{flag}
-		{}
-		KVFlag GetFlag() const {return m_flag;}
-	private:
-		KVFlag m_flag = KVFlag::None;
+		using KVValue::KVValue;
+		nullptr_t GetValue() const;
+		virtual KVType GetType() const;
 	};
 
-	using BinaryBlob = std::vector<uint8_t>;
+	class KVValueBool
+		: public KVValue
+	{
+	public:
+		using KVValue::KVValue;
+		bool GetValue() const;
+		virtual KVType GetType() const override;
+	};
+
+	class KVValueInt64
+		: public KVValue
+	{
+	public:
+		using KVValue::KVValue;
+		int64_t GetValue() const;
+		virtual KVType GetType() const override;
+	};
+
+	class KVValueUInt64
+		: public KVValue
+	{
+	public:
+		using KVValue::KVValue;
+		uint64_t GetValue() const;
+		virtual KVType GetType() const override;
+	};
+
+	class KVValueInt32
+		: public KVValue
+	{
+	public:
+		using KVValue::KVValue;
+		int32_t GetValue() const;
+		virtual KVType GetType() const override;
+	};
+
+	class KVValueUInt32
+		: public KVValue
+	{
+	public:
+		using KVValue::KVValue;
+		uint32_t GetValue() const;
+		virtual KVType GetType() const override;
+	};
+
+	class KVValueDouble
+		: public KVValue
+	{
+	public:
+		using KVValue::KVValue;
+		double GetValue() const;
+		virtual KVType GetType() const override;
+	};
+
+	class KVValueString
+		: public KVValue
+	{
+	public:
+		using KVValue::KVValue;
+		const std::string &GetValue() const;
+		virtual KVType GetType() const override;
+	};
+
+	class KVValueBinaryBlob
+		: public KVValue
+	{
+	public:
+		using KVValue::KVValue;
+		const BinaryBlob &GetValue() const;
+		virtual KVType GetType() const override;
+	};
+
+	class KVObject;
+	class KVValueArray
+		: public KVValue
+	{
+	public:
+		using KVValue::KVValue;
+		const KVObject &GetValue() const;
+		virtual KVType GetType() const override;
+	};
+
+	class KVValueArrayTyped
+		: public KVValue
+	{
+	public:
+		using KVValue::KVValue;
+		const KVObject &GetValue() const;
+		virtual KVType GetType() const override;
+	};
+
+	class KVValueObject
+		: public KVValue
+	{
+	public:
+		using KVValue::KVValue;
+		const KVObject &GetValue() const;
+		virtual KVType GetType() const override;
+	};
+
 	class KVObject
 		: public std::enable_shared_from_this<KVObject>
 	{
@@ -146,6 +245,19 @@ namespace source2::resource
 		KVObject(const std::string &name,bool isArray=false);
 		void AddProperty(const std::string &name,const std::shared_ptr<KVValue> &value);
 		const std::unordered_map<std::string,std::shared_ptr<KVValue>> &GetValues() const;
+		KVValue *FindValue(const std::string &key);
+		const KVValue *FindValue(const std::string &key) const;
+
+		bool IsArray() const;
+		uint32_t GetArrayCount() const;
+
+		template<class TKVValue>
+			TKVValue *GetArrayValue(uint32_t idx);
+		template<class TKVValue>
+			const TKVValue *GetArrayValue(uint32_t idx) const;
+
+		KVValue *GetArrayValue(uint32_t idx,std::optional<KVType> confirmType={});
+		const KVValue *GetArrayValue(uint32_t idx,std::optional<KVType> confirmType={}) const;
 	private:
 		std::string m_key;
 		std::unordered_map<std::string,std::shared_ptr<KVValue>> m_values;
@@ -167,11 +279,15 @@ namespace source2::resource
 		static const std::array<uint8_t,16> FORMAT;
 		static const std::array<uint8_t,4> SIG; // VKV3 (3 isn't ascii, its 0x03)
 
+		const std::vector<std::string> &GetStringArray() const;
+		const std::shared_ptr<KVObject> &GetData() const;
+
 		virtual void Read(std::shared_ptr<VFilePtrInternal> f) override;
 	private:
-		template<typename T>
+		template<class TKVValue,typename T>
 			static std::shared_ptr<KVValue> MakeValue(KVType type, T data, KVFlag flag);
-		static std::shared_ptr<KVValue> MakeValueFromPtr(KVType type, const std::shared_ptr<void> &data, KVFlag flag);
+		template<class TKVValue>
+			static std::shared_ptr<KVValue> MakeValueFromPtr(KVType type, const std::shared_ptr<void> &data, KVFlag flag);
 		static KVType ConvertBinaryOnlyKVType(KVType type);
 		void ReadVersion2(std::shared_ptr<VFilePtrInternal> f,DataStream &outData);
 		void BlockDecompress(std::shared_ptr<VFilePtrInternal> f,DataStream &outData);
@@ -188,5 +304,16 @@ namespace source2::resource
 		std::shared_ptr<KVObject> m_data = nullptr;
 	};
 };
+
+template<class TKVValue>
+	TKVValue *source2::resource::KVObject::GetArrayValue(uint32_t idx)
+{
+	if(IsArray() == false)
+		return nullptr;
+	return dynamic_cast<TKVValue*>(FindValue(std::to_string(idx)));
+}
+template<class TKVValue>
+	const TKVValue *source2::resource::KVObject::GetArrayValue(uint32_t idx) const {return const_cast<KVObject*>(this)->GetArrayValue<TKVValue>(idx);}
+
 
 #endif
