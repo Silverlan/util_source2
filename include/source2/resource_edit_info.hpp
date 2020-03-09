@@ -1,6 +1,27 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
-* License, v. 2.0. If a copy of the MPL was not distributed with this
-* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/*
+MIT License
+
+Copyright (c) 2020 Silverlan
+Copyright (c) 2015 Steam Database
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 #ifndef __SOURCE2_RESOURCE_EDIT_INFO_HPP__
 #define __SOURCE2_RESOURCE_EDIT_INFO_HPP__
@@ -22,7 +43,8 @@ namespace source2::resource
 
 		REDIBlock &GetStruct(REDIStruct type);
 		virtual BlockType GetType() const override;
-		virtual void Read(std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 	private:
 		std::array<std::shared_ptr<REDIBlock>,umath::to_integral(REDIStruct::Count)> m_structs = {};
 	};
@@ -37,7 +59,9 @@ namespace source2::resource
 			std::string name;
 		};
 		virtual BlockType GetType() const override;
-		virtual void Read(std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
+		const std::vector<ResourceReferenceInfo> &GetResourceReferenceInfos() const;
 	private:
 		std::vector<ResourceReferenceInfo> m_resourceReferenceInfos = {};
 	};
@@ -164,6 +188,37 @@ namespace source2::resource
 		V208 = 131,
 		V408 = 132,
 	};
+	std::string to_string(DXGI_FORMAT format);
+
+	enum class DataType : int16_t
+	{
+		Unknown = 0,
+		Struct = 1,
+		Enum = 2, // TODO: not verified with resourceinfo
+		ExternalReference = 3,
+		String4 = 4, // TODO: not verified with resourceinfo
+		SByte = 10,
+		Byte = 11,
+		Int16 = 12,
+		UInt16 = 13,
+		Int32 = 14,
+		UInt32 = 15,
+		Int64 = 16, // TODO: not verified with resourceinfo
+		UInt64 = 17,
+		Float = 18,
+		Matrix2x4 = 21, // TODO: FourVectors2D
+		Vector = 22,
+		Vector4D = 23,
+		Quaternion = 25,
+		Fltx4 = 27,
+		Color = 28, // TODO: not verified with resourceinfo
+		Boolean = 30,
+		String = 31,
+		Matrix3x4 = 33,
+		Matrix3x4a = 36,
+		CTransform = 40,
+		Vector4D_44 = 44
+	};
 
 	class VBIB
 		: public Block
@@ -192,7 +247,8 @@ namespace source2::resource
 		};
 
 		virtual BlockType GetType() const override;
-		virtual void Read(std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 		const std::vector<VertexBuffer> &GetVertexBuffers() const;
 		const std::vector<IndexBuffer> &GetIndexBuffers() const;
 	private:
@@ -200,6 +256,90 @@ namespace source2::resource
 		std::vector<VertexBuffer> m_vertexBuffers;
 		std::vector<IndexBuffer> m_indexBuffers;
 	};
+
+	class MBUF
+		: public VBIB
+	{
+	public:
+		virtual BlockType GetType() const override;
+	};
+
+	class VXVS
+		: public Block
+	{
+	public:
+		virtual BlockType GetType() const override;
+		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
+	};
+
+	class SNAP
+		: public Block
+	{
+	public:
+		virtual BlockType GetType() const override;
+		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
+	};
+
+	class ResourceIntrospectionManifest
+		: public Block
+	{
+	public:
+		struct ResourceDiskStruct
+		{
+			struct Field
+			{
+				std::string fieldName;
+				uint16_t count = 0;
+				uint16_t diskOffset = 0;
+				std::vector<uint8_t> indirections {};
+				uint32_t typeData = 0;
+				DataType type = DataType::Unknown;
+			};
+
+			uint32_t introspectionVersion = 0;
+			uint32_t id = 0;
+			std::string name = "";
+			uint32_t diskCrc = 0;
+			int32_t userVersion = 0;
+			uint16_t diskSize = 0;
+			uint16_t alignment = 0;
+			uint32_t baseStructId = 0;
+			uint8_t structFlags = 0;
+			std::vector<Field> fieldIntrospection;
+		};
+
+		struct ResourceDiskEnum
+		{
+			struct Value
+			{
+				std::string enumValueName;
+				int32_t enumValue = 0;
+			};
+			uint32_t introspectionVersion = 0;
+			uint32_t id = 0;
+			std::string name;
+			uint32_t diskCrc = 0;
+			int32_t userVersion = 0;
+			std::vector<Value> enumValueIntrospection;
+		};
+
+		virtual BlockType GetType() const override;
+		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
+
+		uint32_t GetIntrospectionVersion() const;
+		const std::vector<ResourceDiskStruct> &GetReferencedStructs() const;
+		const std::vector<ResourceDiskEnum> &GetReferencedEnums() const;
+	private:
+		void ReadStructs(std::shared_ptr<VFilePtrInternal> f);
+		void ReadEnums(std::shared_ptr<VFilePtrInternal> f);
+		uint32_t m_introspectionVersion = 0;
+		std::vector<ResourceDiskStruct> m_referencedStructs {};
+		std::vector<ResourceDiskEnum> m_referencedEnums {};
+	};
+	std::string to_string(DataType type);
 };
 
 #endif

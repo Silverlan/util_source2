@@ -1,6 +1,27 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
-* License, v. 2.0. If a copy of the MPL was not distributed with this
-* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/*
+MIT License
+
+Copyright (c) 2020 Silverlan
+Copyright (c) 2015 Steam Database
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 #include "source2/redi/redi.hpp"
 #include "source2/impl.hpp"
@@ -11,7 +32,15 @@ using namespace source2;
 
 BlockType resource::REDIBlock::GetType() const {return BlockType::REDI;}
 
-void resource::InputDependencies::Read(std::shared_ptr<VFilePtrInternal> f)
+void resource::InputDependencies::InputDependency::DebugPrint(std::stringstream &ss,const std::string &t) const
+{
+	ss<<t<<"Content relative filename: "<<contentRelativeFilename<<"\n";
+	ss<<t<<"Content search path: "<<contentSearchPath<<"\n";
+	ss<<t<<"File CRC: "<<fileCRC<<"\n";
+	ss<<t<<"Flags: "<<flags<<"\n";
+}
+
+void resource::InputDependencies::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
 {
 	f->Seek(GetOffset());
 	auto size = GetSize();
@@ -27,7 +56,29 @@ void resource::InputDependencies::Read(std::shared_ptr<VFilePtrInternal> f)
 	}
 }
 
-void resource::ArgumentDependencies::Read(std::shared_ptr<VFilePtrInternal> f)
+void resource::InputDependencies::DebugPrint(std::stringstream &ss,const std::string &t) const
+{
+	ss<<t<<"InputDependencies = {\n";
+	for(auto i=decltype(m_inputDependencies.size()){0u};i<m_inputDependencies.size();++i)
+	{
+		auto &inputDependency = m_inputDependencies.at(i);
+		ss<<t<<"\t{\n";
+		inputDependency.DebugPrint(ss,t +"\t\t");
+		ss<<t<<"\t},\n";
+
+	}
+	ss<<t<<"}\n";
+}
+
+void resource::ArgumentDependencies::ArgumentDependency::DebugPrint(std::stringstream &ss,const std::string &t) const
+{
+	ss<<t<<"Parameter name: "<<parameterName<<"\n";
+	ss<<t<<"Parameter type: "<<parameterType<<"\n";
+	ss<<t<<"Fingerprint: "<<fingerprint<<"\n";
+	ss<<t<<"Fingerprint default: "<<fingerprintDefault<<"\n";
+}
+
+void resource::ArgumentDependencies::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
 {
 	f->Seek(GetOffset());
 	auto size = GetSize();
@@ -41,6 +92,20 @@ void resource::ArgumentDependencies::Read(std::shared_ptr<VFilePtrInternal> f)
 		dependency.fingerprint = f->Read<uint32_t>();
 		dependency.fingerprintDefault = f->Read<uint32_t>();
 	}
+}
+
+void resource::ArgumentDependencies::DebugPrint(std::stringstream &ss,const std::string &t) const
+{
+	ss<<t<<"ArgumentDependencies = {\n";
+	for(auto i=decltype(m_argumentDependencies.size()){0u};i<m_argumentDependencies.size();++i)
+	{
+		auto &argDependency = m_argumentDependencies.at(i);
+		ss<<t<<"\t{\n";
+		argDependency.DebugPrint(ss,t +"\t\t");
+		ss<<t<<"\t},\n";
+
+	}
+	ss<<t<<"}\n";
 }
 
 ResourceType resource::SpecialDependencies::DetermineResourceTypeByCompilerIdentifier(const SpecialDependency &input)
@@ -139,7 +204,14 @@ ResourceType resource::SpecialDependencies::DetermineResourceTypeByCompilerIdent
 		return ResourceType::Map;
 	return ResourceType::Unknown;
 }
-void resource::SpecialDependencies::Read(std::shared_ptr<VFilePtrInternal> f)
+void resource::SpecialDependencies::SpecialDependency::DebugPrint(std::stringstream &ss,const std::string &t) const
+{
+	ss<<t<<"String: "<<string<<"\n";
+	ss<<t<<"Compiler identifier: "<<compilerIdentifier<<"\n";
+	ss<<t<<"Fingerprint: "<<fingerprint<<"\n";
+	ss<<t<<"User data: "<<userData<<"\n";
+}
+void resource::SpecialDependencies::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
 {
 	f->Seek(GetOffset());
 	auto size = GetSize();
@@ -154,16 +226,35 @@ void resource::SpecialDependencies::Read(std::shared_ptr<VFilePtrInternal> f)
 		dependency.userData = f->Read<uint32_t>();
 	}
 }
+void resource::SpecialDependencies::DebugPrint(std::stringstream &ss,const std::string &t) const
+{
+	ss<<t<<"SpecialDependencies = {\n";
+	for(auto i=decltype(m_specialDependencies.size()){0u};i<m_specialDependencies.size();++i)
+	{
+		auto &specialDep = m_specialDependencies.at(i);
+		ss<<t<<"\t{\n";
+		specialDep.DebugPrint(ss,t +"\t\t");
+		ss<<t<<"\t},\n";
+
+	}
+	ss<<t<<"}\n";
+}
 const std::vector<resource::SpecialDependencies::SpecialDependency> &resource::SpecialDependencies::GetSpecialDependencies() const {return m_specialDependencies;}
 
-void resource::CustomDependencies::Read(std::shared_ptr<VFilePtrInternal> f)
+void resource::CustomDependencies::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
 {
 	f->Seek(GetOffset());
 	if(GetSize() > 0)
 		throw new std::runtime_error{"CustomDependencies block is not handled."};
 }
 
-void resource::AdditionalRelatedFiles::Read(std::shared_ptr<VFilePtrInternal> f)
+void resource::CustomDependencies::DebugPrint(std::stringstream &ss,const std::string &t) const
+{
+	ss<<t<<"CustomDependencies = {\n";
+	ss<<t<<"}\n";
+}
+
+void resource::AdditionalRelatedFiles::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
 {
 	f->Seek(GetOffset());
 	auto size = GetSize();
@@ -177,7 +268,27 @@ void resource::AdditionalRelatedFiles::Read(std::shared_ptr<VFilePtrInternal> f)
 	}
 }
 
-void resource::ChildResourceList::Read(std::shared_ptr<VFilePtrInternal> f)
+void resource::AdditionalRelatedFiles::AdditionalRelatedFile::DebugPrint(std::stringstream &ss,const std::string &t) const
+{
+	ss<<t<<"Content relative filename: "<<contentRelativeFilename<<"\n";
+	ss<<t<<"Content search path: "<<contentSearchPath<<"\n";
+}
+
+void resource::AdditionalRelatedFiles::DebugPrint(std::stringstream &ss,const std::string &t) const
+{
+	ss<<t<<"AdditionalRelatedFiles = {\n";
+	for(auto i=decltype(m_additionalRelatedFiles.size()){0u};i<m_additionalRelatedFiles.size();++i)
+	{
+		auto &additionalRelatedFile = m_additionalRelatedFiles.at(i);
+		ss<<t<<"\t{\n";
+		additionalRelatedFile.DebugPrint(ss,t +"\t\t");
+		ss<<t<<"\t},\n";
+
+	}
+	ss<<t<<"}\n";
+}
+
+void resource::ChildResourceList::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
 {
 	f->Seek(GetOffset());
 	auto size = GetSize();
@@ -193,7 +304,27 @@ void resource::ChildResourceList::Read(std::shared_ptr<VFilePtrInternal> f)
 	}
 }
 
-void resource::ExtraIntData::Read(std::shared_ptr<VFilePtrInternal> f)
+void resource::ChildResourceList::ReferenceInfo::DebugPrint(std::stringstream &ss,const std::string &t) const
+{
+	ss<<t<<"Id: "<<id<<"\n";
+	ss<<t<<"Resource name: "<<resourceName<<"\n";
+}
+
+void resource::ChildResourceList::DebugPrint(std::stringstream &ss,const std::string &t) const
+{
+	ss<<t<<"ChildResourceList = {\n";
+	for(auto i=decltype(m_references.size()){0u};i<m_references.size();++i)
+	{
+		auto &refInfo = m_references.at(i);
+		ss<<t<<"\t{\n";
+		refInfo.DebugPrint(ss,t +"\t\t");
+		ss<<t<<"\t},\n";
+
+	}
+	ss<<t<<"}\n";
+}
+
+void resource::ExtraIntData::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
 {
 	f->Seek(GetOffset());
 	auto size = GetSize();
@@ -207,7 +338,27 @@ void resource::ExtraIntData::Read(std::shared_ptr<VFilePtrInternal> f)
 	}
 }
 
-void resource::ExtraFloatData::Read(std::shared_ptr<VFilePtrInternal> f)
+void resource::ExtraIntData::EditIntData::DebugPrint(std::stringstream &ss,const std::string &t) const
+{
+	ss<<t<<"Name: "<<name<<"\n";
+	ss<<t<<"Value: "<<value<<"\n";
+}
+
+void resource::ExtraIntData::DebugPrint(std::stringstream &ss,const std::string &t) const
+{
+	ss<<t<<"ExtraIntData = {\n";
+	for(auto i=decltype(m_editIntData.size()){0u};i<m_editIntData.size();++i)
+	{
+		auto &editIntData = m_editIntData.at(i);
+		ss<<t<<"\t{\n";
+		editIntData.DebugPrint(ss,t +"\t\t");
+		ss<<t<<"\t},\n";
+
+	}
+	ss<<t<<"}\n";
+}
+
+void resource::ExtraFloatData::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
 {
 	f->Seek(GetOffset());
 	auto size = GetSize();
@@ -221,7 +372,27 @@ void resource::ExtraFloatData::Read(std::shared_ptr<VFilePtrInternal> f)
 	}
 }
 
-void resource::ExtraStringData::Read(std::shared_ptr<VFilePtrInternal> f)
+void resource::ExtraFloatData::EditFloatData::DebugPrint(std::stringstream &ss,const std::string &t) const
+{
+	ss<<t<<"Name: "<<name<<"\n";
+	ss<<t<<"Value: "<<value<<"\n";
+}
+
+void resource::ExtraFloatData::DebugPrint(std::stringstream &ss,const std::string &t) const
+{
+	ss<<t<<"ExtraFloatData = {\n";
+	for(auto i=decltype(m_editFloatData.size()){0u};i<m_editFloatData.size();++i)
+	{
+		auto &editFloatData = m_editFloatData.at(i);
+		ss<<t<<"\t{\n";
+		editFloatData.DebugPrint(ss,t +"\t\t");
+		ss<<t<<"\t},\n";
+
+	}
+	ss<<t<<"}\n";
+}
+
+void resource::ExtraStringData::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
 {
 	f->Seek(GetOffset());
 	auto size = GetSize();
@@ -233,4 +404,24 @@ void resource::ExtraStringData::Read(std::shared_ptr<VFilePtrInternal> f)
 		dependency.name = read_offset_string(f); // TODO: UTF8
 		dependency.value = read_offset_string(f); // TODO: UTF8
 	}
+}
+
+void resource::ExtraStringData::EditStringData::DebugPrint(std::stringstream &ss,const std::string &t) const
+{
+	ss<<t<<"Name: "<<name<<"\n";
+	ss<<t<<"Value: "<<value<<"\n";
+}
+
+void resource::ExtraStringData::DebugPrint(std::stringstream &ss,const std::string &t) const
+{
+	ss<<t<<"ExtraFloatData = {\n";
+	for(auto i=decltype(m_editStringData.size()){0u};i<m_editStringData.size();++i)
+	{
+		auto &editStringData = m_editStringData.at(i);
+		ss<<t<<"\t{\n";
+		editStringData.DebugPrint(ss,t +"\t\t");
+		ss<<t<<"\t},\n";
+
+	}
+	ss<<t<<"}\n";
 }

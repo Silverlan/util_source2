@@ -1,17 +1,40 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/*
+MIT License
+
+Copyright (c) 2020 Silverlan
+Copyright (c) 2015 Steam Database
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 #ifndef __UTIL_SOURCE2_HPP__
 #define __UTIL_SOURCE2_HPP__
 
 #include <memory>
+#include <sstream>
 
 class VFilePtrInternal;
 namespace source2
 {
 	enum class BlockType : uint8_t
 	{
+		None = 0,
 		RERL = 1,
 		REDI,
 		NTRO,
@@ -28,6 +51,7 @@ namespace source2
 		AGRP,
 		PHYS
 	};
+	std::string to_string(BlockType blockType);
 
 	enum VTexFormat : uint8_t
 	{
@@ -61,6 +85,7 @@ namespace source2
 		ATI1N = 27,
 		BGRA8888 = 28
 	};
+	std::string to_string(VTexFormat blockType);
 
 	enum class VTexFlags : uint16_t
 	{
@@ -73,6 +98,7 @@ namespace source2
 		VOLUME_TEXTURE = 0x00000020,
 		TEXTURE_ARRAY = 0x00000040
 	};
+	std::string to_string(VTexFlags blockType);
 
 	enum class VTexExtraData : uint32_t
 	{
@@ -82,6 +108,7 @@ namespace source2
 		FILL_TO_POWER_OF_TWO = 3,
 		COMPRESSED_MIP_SIZE = 4
 	};
+	std::string to_string(VTexExtraData blockType);
 
 	enum class ResourceType : uint16_t
 	{
@@ -118,6 +145,7 @@ namespace source2
 		ParticleSnapshot,
 		Map
 	};
+	std::string to_string(ResourceType blockType);
 
 	enum class REDIStruct : uint8_t
 	{
@@ -134,9 +162,11 @@ namespace source2
 
 		Count
 	};
+	std::string to_string(REDIStruct blockType);
 
 	namespace resource {class Resource;};
 	std::shared_ptr<resource::Resource> load_resource(std::shared_ptr<VFilePtrInternal> file);
+	void debug_print(resource::Resource &resource,std::stringstream &ss);
 };
 
 #endif

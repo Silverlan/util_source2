@@ -1,6 +1,27 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
-* License, v. 2.0. If a copy of the MPL was not distributed with this
-* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/*
+MIT License
+
+Copyright (c) 2020 Silverlan
+Copyright (c) 2015 Steam Database
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 #include "source2/resource.hpp"
 #include "source2/resource_data.hpp"
@@ -13,6 +34,7 @@
 
 using namespace source2;
 
+#pragma optimize("",off)
 resource::Block *resource::Resource::FindBlock(BlockType type)
 {
 	auto it = std::find_if(m_blocks.begin(),m_blocks.end(),[type](const std::shared_ptr<Block> &block) {
@@ -20,6 +42,7 @@ resource::Block *resource::Resource::FindBlock(BlockType type)
 		});
 	return (it != m_blocks.end()) ? it->get() : nullptr;
 }
+const resource::Block *resource::Resource::FindBlock(BlockType type) const {return const_cast<Resource*>(this)->FindBlock(type);}
 const std::vector<std::shared_ptr<resource::Block>> &resource::Resource::GetBlocks() const {return m_blocks;}
 void resource::Resource::Read(std::shared_ptr<VFilePtrInternal> f)
 {
@@ -59,7 +82,7 @@ void resource::Resource::Read(std::shared_ptr<VFilePtrInternal> f)
 
 		block->SetOffset(offset);
 		block->SetSize(size);
-		block->Read(f);
+		block->Read(*this,f);
 
 		m_blocks.push_back(block);
 
@@ -76,23 +99,20 @@ void resource::Resource::Read(std::shared_ptr<VFilePtrInternal> f)
 			}
 			break;
 		case BlockType::NTRO:
-			throw std::runtime_error{"NTRO blocks not yet implemented!"};
-			/*if(m_resourceType == ResourceType::Unknown && IntrospectionManifest.ReferencedStructs.Count > 0)
+			if(m_resourceType == ResourceType::Unknown)
 			{
-			switch (IntrospectionManifest.ReferencedStructs[0].Name)
-			{
-			case "VSoundEventScript_t":
-			ResourceType = ResourceType.SoundEventScript;
-			break;
-
-			case "CWorldVisibility":
-			ResourceType = ResourceType.WorldVisibility;
-			break;
+				auto *manifest = GetIntrospectionManifest();
+				if(manifest && manifest->GetReferencedStructs().size() > 0)
+				{
+					auto &strct = manifest->GetReferencedStructs().front();
+					if(strct.name == "VSoundEventScript_t")
+						m_resourceType = ResourceType::SoundEventScript;
+					else if(strct.name == "CWorldVisibility")
+						m_resourceType = ResourceType::WorldVisibility;
+				}
 			}
-			}*/
 			break;
 		}
-		// TODO: Determine resource type
 
 		f->Seek(position +sizeof(uint32_t) *2);
 	}
@@ -107,11 +127,31 @@ std::shared_ptr<source2::resource::Block> resource::Resource::ConstructFromType(
 		return std::make_shared<source2::resource::ResourceExtRefList>();
 	else if(input == "VBIB")
 		return std::make_shared<source2::resource::VBIB>();
-	//else if(input == "NTRO")
-	//	return std::make_shared<source2::resource::NTRO>();
-	// TODO: Implement other types
+	else if(input == "NTRO")
+		return std::make_shared<source2::resource::ResourceIntrospectionManifest>();
+	else if(input == "VXVS")
+		return std::make_shared<source2::resource::VXVS>();
+	else if(input == "SNAP")
+		return std::make_shared<source2::resource::SNAP>();
+	else if(input == "MBUF")
+		return std::make_shared<source2::resource::MBUF>();
+	else if(input == "CTRL")
+		return std::make_shared<BinaryKV3>(BlockType::CTRL);
+	else if(input == "MDAT")
+		return std::make_shared<BinaryKV3>(BlockType::MDAT);
+	else if(input == "MRPH")
+		return std::make_shared<BinaryKV3>(BlockType::MRPH);
+	else if(input == "ANIM")
+		return std::make_shared<BinaryKV3>(BlockType::ANIM);
+	else if(input == "ASEQ")
+		return std::make_shared<BinaryKV3>(BlockType::ASEQ);
+	else if(input == "AGRP")
+		return std::make_shared<BinaryKV3>(BlockType::AGRP);
+	else if(input == "PHYS")
+		return std::make_shared<BinaryKV3>(BlockType::PHYS);
 	throw std::runtime_error{"Support for type " +input +" not yet implemented!"};
 }
+uint32_t resource::Resource::GetVersion() const {return m_version;}
 std::shared_ptr<source2::resource::ResourceData> resource::Resource::ConstructResourceType()
 {
 	switch (m_resourceType)
@@ -125,30 +165,39 @@ std::shared_ptr<source2::resource::ResourceData> resource::Resource::ConstructRe
 		return std::make_shared<source2::resource::Panorama>();
 
 	case ResourceType::Sound:
-		return nullptr; // new Sound(); // TODO
+		return std::make_shared<source2::resource::Sound>();
 
 	case ResourceType::Texture:
 		return std::make_shared<source2::resource::Texture>();
 
-		//case ResourceType::Material:
-		//    return new Material(); // TODO
+	case ResourceType::Material:
+	    return std::make_shared<source2::resource::Material>();
 
 	case ResourceType::SoundEventScript:
-		return nullptr; // new SoundEventScript(); // TODO
+		return std::make_shared<source2::resource::SoundEventScript>();
 
 	case ResourceType::Particle:
-		return nullptr; // new BinaryKV3(); // TODO
+		return std::make_shared<source2::resource::BinaryKV3>();
 
 	case ResourceType::Mesh:
-		if (m_version == 0)
-		{
+		if(m_version == 0)
 			break;
-		}
-
-		return nullptr; // new BinaryKV3(); // TODO
+		return std::make_shared<source2::resource::BinaryKV3>();
 	}
 
-	if(FindBlock(BlockType::NTRO))
-		return nullptr; // new NTRO(); // TODO
+	if(GetIntrospectionManifest())
+		return std::make_shared<source2::resource::NTRO>();
 	return std::make_shared<source2::resource::ResourceData>();
 }
+resource::ResourceIntrospectionManifest *resource::Resource::GetIntrospectionManifest()
+{
+	return static_cast<resource::ResourceIntrospectionManifest*>(FindBlock(BlockType::NTRO));
+}
+const resource::ResourceIntrospectionManifest *resource::Resource::GetIntrospectionManifest() const {return const_cast<Resource*>(this)->GetIntrospectionManifest();}
+
+resource::ResourceExtRefList *resource::Resource::GetExternalReferences()
+{
+	return static_cast<resource::ResourceExtRefList*>(FindBlock(BlockType::RERL));
+}
+const resource::ResourceExtRefList *resource::Resource::GetExternalReferences() const {return const_cast<Resource*>(this)->GetExternalReferences();}
+#pragma optimize("",on)
