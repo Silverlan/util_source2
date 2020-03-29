@@ -35,7 +35,81 @@ SOFTWARE.
 using namespace source2;
 
 #pragma optimize("",off)
+std::string resource::to_string(KVType type)
+{
+	switch(type)
+	{
+	case KVType::Invalid:
+		return "Invalid";
+	case KVType::STRING_MULTI:
+		return "STRING_MULTI";
+	case KVType::Null:
+		return "Null";
+	case KVType::BOOLEAN:
+		return "BOOLEAN";
+	case KVType::INT64:
+		return "INT64";
+	case KVType::UINT64:
+		return "UINT64";
+	case KVType::DOUBLE:
+		return "DOUBLE";
+	case KVType::STRING:
+		return "STRING";
+	case KVType::BINARY_BLOB:
+		return "BINARY_BLOB";
+	case KVType::ARRAY:
+		return "ARRAY";
+	case KVType::OBJECT:
+		return "OBJECT";
+	case KVType::ARRAY_TYPED:
+		return "ARRAY_TYPED";
+	case KVType::INT32:
+		return "INT32";
+	case KVType::UINT32:
+		return "UINT32";
+	case KVType::BOOLEAN_TRUE:
+		return "BOOLEAN_TRUE";
+	case KVType::BOOLEAN_FALSE:
+		return "BOOLEAN_FALSE";
+	case KVType::INT64_ZERO:
+		return "INT64_ZERO";
+	case KVType::INT64_ONE:
+		return "INT64_ONE";
+	case KVType::DOUBLE_ZERO:
+		return "DOUBLE_ZERO";
+	case KVType::DOUBLE_ONE:
+		return "DOUBLE_ONE";
+	}
+	return "Unknown";
+}
+
+///////////////
+
+resource::IKeyValueCollection *resource::IKeyValueCollection::FindSubCollection(const std::string &key)
+{
+	auto oCollection = IKeyValueCollection::FindValue<IKeyValueCollection*>(*this,key);
+	return oCollection.has_value() ? *oCollection : nullptr;
+}
+resource::BinaryBlob *resource::IKeyValueCollection::FindBinaryBlob(const std::string &key)
+{
+	if(typeid(*this) == typeid(NTROStruct))
+		return static_cast<NTROStruct&>(*this).FindBinaryBlob(key);
+	else if(typeid(*this) == typeid(KVObject))
+		return static_cast<KVObject&>(*this).FindBinaryBlob(key);
+	return {};
+}
+
+///////////////
+
 BlockType resource::ResourceData::GetType() const {return BlockType::DATA;}
+resource::IKeyValueCollection *resource::ResourceData::GetData()
+{
+	auto *ntro = dynamic_cast<NTRO*>(this);
+	if(ntro)
+		return ntro->GetOutput().get();
+	auto *binaryKv3 = dynamic_cast<BinaryKV3*>(this);
+	return binaryKv3 ? binaryKv3->GetData().get() : nullptr;
+}
 void resource::ResourceData::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) {}
 void resource::ResourceData::DebugPrint(std::stringstream &ss,const std::string &t) const
 {
@@ -85,19 +159,30 @@ resource::NTROStruct::NTROStruct(const std::vector<std::shared_ptr<NTROValue>> &
 	for(auto i=decltype(values.size()){0u};i<values.size();++i)
 	{
 		auto &v = values.at(i);
-		Add(std::to_string(i),v);
+		Add(std::to_string(i),*v);
 	}
 }
 const std::unordered_map<std::string,std::shared_ptr<resource::NTROValue>> &resource::NTROStruct::GetContents() const {return m_contents;}
+resource::BinaryBlob *resource::NTROStruct::FindBinaryBlob(const std::string &key)
+{
+	// TODO: Does NTRO have binary blobs?
+	return nullptr;
+}
 resource::NTROValue *resource::NTROStruct::FindValue(const std::string &key)
 {
 	auto it = m_contents.find(key);
 	return (it != m_contents.end()) ? it->second.get() : nullptr;
 }
 const resource::NTROValue *resource::NTROStruct::FindValue(const std::string &key) const {return const_cast<NTROStruct*>(this)->FindValue(key);}
-void resource::NTROStruct::Add(const std::string &id,const std::shared_ptr<NTROValue> &val)
+resource::NTROArray *resource::NTROStruct::FindArray(const std::string &key)
 {
-	m_contents.insert(std::make_pair(id,val));
+	auto o = FindValue<std::shared_ptr<NTROArray>>(key);
+	return o.has_value() ? o->get() : nullptr;
+}
+const resource::NTROArray *resource::NTROStruct::FindArray(const std::string &key) const {return const_cast<NTROStruct*>(this)->FindArray(key);}
+void resource::NTROStruct::Add(const std::string &id,NTROValue &val)
+{
+	m_contents.insert(std::make_pair(id,val.shared_from_this()));
 }
 void resource::NTROStruct::DebugPrint(std::stringstream &ss,const std::string &t) const
 {
@@ -147,7 +232,8 @@ void resource::NTRO::ReadFieldIntrospection(
 			pointer = true;
 			if(offset == 0)
 			{
-				structEntry.Add(field.fieldName, std::static_pointer_cast<NTROValue>(std::make_shared<TNTROValue<uint8_t>>(field.type, 0u, true))); //being byte shouldn't matter
+				auto value = std::make_shared<TNTROValue<uint8_t>>(field.type, 0u, true);
+				structEntry.Add(field.fieldName, *value); //being byte shouldn't matter
 				return;
 			}
 			prevOffset = f->Tell();
@@ -177,12 +263,15 @@ void resource::NTRO::ReadFieldIntrospection(
 		for(auto i=decltype(count){0u};i<count;++i)
 			ntroValues->GetContents().at(i) = ReadField(resource, field, pointer,f);
 
-		structEntry.Add(field.fieldName, std::static_pointer_cast<NTROValue>(ntroValues));
+		structEntry.Add(field.fieldName, *ntroValues);
 	}
 	else
 	{
 		for(auto i=decltype(count){0u};i<count;++i)
-			structEntry.Add(field.fieldName, ReadField(resource, field, pointer, f));
+		{
+			auto pfield = ReadField(resource, field, pointer, f);
+			structEntry.Add(field.fieldName, *pfield);
+		}
 	}
 	if(prevOffset > 0)
 		f->Seek(prevOffset);
@@ -297,6 +386,8 @@ std::shared_ptr<resource::NTROStruct> resource::NTRO::ReadStructure(
 )
 {
 	auto structEntry = std::make_shared<NTROStruct>(refStruct.name);
+	if(refStruct.name == "PermModelData_t")
+		std::cout<<"";
 	for(auto &field : refStruct.fieldIntrospection)
 	{
 		f->Seek(startingOffset +field.diskOffset);
@@ -526,6 +617,21 @@ const std::shared_ptr<resource::ResourceData> &resource::KeyValuesOrNTRO::GetBak
 
 const std::string &resource::Material::GetName() const {return m_name;}
 const std::string &resource::Material::GetShaderName() const {return m_shaderName;}
+
+template<typename T>
+	static void collect_material_parameters(
+		resource::IKeyValueCollection &data,const std::string &identifier,const std::string &key,std::unordered_map<std::string,T> &outData
+)
+{
+	auto params = resource::IKeyValueCollection::FindArrayValues<resource::IKeyValueCollection*>(data,identifier);
+	for(auto &param : params)
+	{
+		auto name = param->FindValue<std::string>("m_name","");
+		auto val = param->FindValue<T>(key,T{});
+		outData.insert(std::make_pair(name,val));
+	}
+}
+
 void resource::Material::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
 {
 	KeyValuesOrNTRO::Read(resource,f);
@@ -536,115 +642,72 @@ void resource::Material::Read(const Resource &resource,std::shared_ptr<VFilePtrI
 	auto oShaderName = IKeyValueCollection::FindValue<std::string>(*GetData(),"m_shaderName");
 	m_shaderName = oShaderName.has_value() ? *oShaderName : "";
 
-#if 0
-	auto fCollectParams = [this](const std::string &identifier) {
-		auto oParams = IKeyValueCollection::FindValue<std::shared_ptr<NTROArray>>(*GetData(),identifier);
-		if(oParams.has_value() == false || !*oParams)
-			return;
-		auto &params = *oParams;
-		for(auto &param : params->GetContents())
-		{
-			if(param->type != resource::DataType::Struct)
-				continue;
-			auto &strct = static_cast<source2::resource::TNTROValue<std::shared_ptr<source2::resource::NTROStruct> >&>(*param);
-			auto oName = strct.value->FindValue<std::string>("m_name");
-			auto oValue = strct.value->FindValue<int32_t>("m_nValue");
-			if(oName && oValue);
-			m_intParams.insert(std::make_pair(*oName,*oValue));
-		}
-	};
+	collect_material_parameters(*GetData(),"m_intParams","m_nValue",m_intParams);
+	collect_material_parameters(*GetData(),"m_floatParams","m_flValue",m_floatParams);
+	collect_material_parameters(*GetData(),"m_vectorParams","m_value",m_vectorParams);
+	collect_material_parameters(*GetData(),"m_textureParams","m_pValue",m_textureParams);
 
-	auto oIntParams = IKeyValueCollection::FindValue<std::shared_ptr<NTROArray>>(*GetData(),"m_intParams");
-	if(oIntParams.has_value() && *oIntParams)
-	{
-		auto &intParams = *oIntParams;
-		for(auto &intParam : intParams->GetContents())
-		{
-			if(intParam->type != resource::DataType::Struct)
-				continue;
-			auto &strct = static_cast<source2::resource::TNTROValue<std::shared_ptr<source2::resource::NTROStruct> >&>(*intParam);
-			auto oName = strct.value->FindValue<std::string>("m_name");
-			auto oValue = strct.value->FindValue<int32_t>("m_nValue");
-			if(oName && oValue);
-				m_intParams.insert(std::make_pair(*oName,*oValue));
-		}
-	}
-#endif
-#if 0
-	auto *oIntParams = GetData()->FindValue<const KVObject*>("");
-	if(oIntParams && oIntParams->IsArray())
-	{
-		auto &values = oIntParams->GetValues();
-		auto n = oIntParams->GetArrayCount();
-		for(auto i=decltype(n){0u};i<n;++i)
-		{
-			auto it = values.find(std::to_string(i));
-			if(it == values.end())
-				continue;
-			auto &v = *it->second;
-			v.GetObject();
-		}
-		/*for(auto &pair : )
-		{
-			auto &val = pair.second;
-			m_intParams.insert(std::make_pair());
-		}*/
-	}
-#endif
-	// TODO: Is this a string array?
-	//RenderAttributesUsed = ((ValveResourceFormat.ResourceTypes.NTROSerialization.NTROValue<string>)Output["m_renderAttributesUsed"]).Value;
-	//KVObject
-	/*foreach (var kvp in Data.GetArray("m_intParams"))
-	{
-		IntParams[kvp.GetProperty<string>("m_name")] = kvp.GetIntegerProperty("m_nValue");
-	}*/
-	/*
+	collect_material_parameters(*GetData(),"m_intAttributes","m_nValue",m_intAttributes);
+	collect_material_parameters(*GetData(),"m_floatAttributes","m_flValue",m_floatAttributes);
+	collect_material_parameters(*GetData(),"m_vectorAttributes","m_value",m_vectorAttributes);
+	collect_material_parameters(*GetData(),"m_stringAttributes","m_pValue",m_stringAttributes);
+}
+const int64_t *resource::Material::FindIntParam(const std::string &key) const
+{
+	auto it = m_intParams.find(key);
+	if(it == m_intParams.end())
+		return nullptr;
+	return &it->second;
+}
+const float *resource::Material::FindFloatParam(const std::string &key) const
+{
+	auto it = m_floatParams.find(key);
+	if(it == m_floatParams.end())
+		return nullptr;
+	return &it->second;
+}
+const Vector4 *resource::Material::FindVectorParam(const std::string &key) const
+{
+	auto it = m_vectorParams.find(key);
+	if(it == m_vectorParams.end())
+		return nullptr;
+	return &it->second;
+}
+const std::string *resource::Material::FindTextureParam(const std::string &key) const
+{
+	auto it = m_textureParams.find(key);
+	if(it == m_textureParams.end())
+		return nullptr;
+	return &it->second;
+}
 
-
-	foreach (var kvp in Data.GetArray("m_intParams"))
-	{
-		IntParams[kvp.GetProperty<string>("m_name")] = kvp.GetIntegerProperty("m_nValue");
-	}
-
-	foreach (var kvp in Data.GetArray("m_floatParams"))
-	{
-		FloatParams[kvp.GetProperty<string>("m_name")] = kvp.GetFloatProperty("m_flValue");
-	}
-
-	foreach (var kvp in Data.GetArray("m_vectorParams"))
-	{
-		VectorParams[kvp.GetProperty<string>("m_name")] = kvp.GetSubCollection("m_value").ToVector4();
-	}
-
-	foreach (var kvp in Data.GetArray("m_textureParams"))
-	{
-		TextureParams[kvp.GetProperty<string>("m_name")] = kvp.GetProperty<string>("m_pValue");
-	}
-
-	// TODO: These 3 parameters
-	//var textureAttributes = (NTROArray)Output["m_textureAttributes"];
-	//var dynamicParams = (NTROArray)Output["m_dynamicParams"];
-	//var dynamicTextureParams = (NTROArray)Output["m_dynamicTextureParams"];
-
-	foreach (var kvp in Data.GetArray("m_intAttributes"))
-	{
-		IntAttributes[kvp.GetProperty<string>("m_name")] = kvp.GetIntegerProperty("m_nValue");
-	}
-
-	foreach (var kvp in Data.GetArray("m_floatAttributes"))
-	{
-		FloatAttributes[kvp.GetProperty<string>("m_name")] = kvp.GetFloatProperty("m_flValue");
-	}
-
-	foreach (var kvp in Data.GetArray("m_vectorAttributes"))
-	{
-		VectorAttributes[kvp.GetProperty<string>("m_name")] = kvp.GetSubCollection("m_value").ToVector4();
-	}
-
-	foreach (var kvp in Data.GetArray("m_stringAttributes"))
-	{
-		StringAttributes[kvp.GetProperty<string>("m_name")] = kvp.GetProperty<string>("m_pValue");
-	}*/
+const int64_t *resource::Material::FindIntAttr(const std::string &key) const
+{
+	auto it = m_intAttributes.find(key);
+	if(it == m_intAttributes.end())
+		return nullptr;
+	return &it->second;
+}
+const float *resource::Material::FindFloatAttr(const std::string &key) const
+{
+	auto it = m_floatAttributes.find(key);
+	if(it == m_floatAttributes.end())
+		return nullptr;
+	return &it->second;
+}
+const Vector4 *resource::Material::FindVectorAttr(const std::string &key) const
+{
+	auto it = m_vectorAttributes.find(key);
+	if(it == m_vectorAttributes.end())
+		return nullptr;
+	return &it->second;
+}
+const std::string *resource::Material::FindTextureAttr(const std::string &key) const
+{
+	auto it = m_stringAttributes.find(key);
+	if(it == m_stringAttributes.end())
+		return nullptr;
+	return &it->second;
 }
 void resource::Material::DebugPrint(std::stringstream &ss,const std::string &t) const
 {
@@ -803,11 +866,14 @@ uint32_t resource::Texture::GetBlockSize()
 	case VTexFormat::RG3232F: return 8;
 	case VTexFormat::RGB323232F: return 12;
 	case VTexFormat::RGBA32323232F: return 16;
+	case VTexFormat::BC6H: return 16;
+	case VTexFormat::BC7: return 16;
 	case VTexFormat::IA88: return 2;
 	case VTexFormat::ETC2: return 8;
 	case VTexFormat::ETC2_EAC: return 16;
 	case VTexFormat::BGRA8888: return 4;
 	case VTexFormat::ATI1N: return 8;
+	case VTexFormat::ATI2N: return 16;
 	}
 
 	return 1;
@@ -837,11 +903,25 @@ uint64_t resource::Texture::GetMipmapDataOffset(uint8_t mipmap)
 
 void resource::Texture::ReadTextureData(uint8_t mipLevel,std::vector<uint8_t> &outData)
 {
-	auto size = m_isCompressed ? m_compressedMips.at(mipLevel) : CalculateBufferSizeForMipLevel(mipLevel);
-
-	outData.resize(size);
 	m_file->Seek(GetMipmapDataOffset(mipLevel));
-	m_file->Read(outData.data(),outData.size() *sizeof(outData.front()));
+	auto uncompressedSize = CalculateBufferSizeForMipLevel(mipLevel);
+	auto compressedSize = m_isCompressed ? m_compressedMips.at(mipLevel) : uncompressedSize;
+	outData.resize(uncompressedSize);
+	if(compressedSize >= uncompressedSize)
+	{
+		m_file->Read(outData.data(),outData.size() *sizeof(outData.front()));
+		return;
+	}
+	std::vector<uint8_t> compressedData {};
+	compressedData.resize(compressedSize);
+	m_file->Read(compressedData.data(),compressedData.size() *sizeof(compressedData.front()));
+
+	auto result = LZ4_decompress_safe(
+		reinterpret_cast<char*>(compressedData.data()),reinterpret_cast<char*>(outData.data()),
+		compressedData.size() *sizeof(compressedData.front()),outData.size() *sizeof(outData.front())
+	);
+	if(result < 0)
+		throw std::runtime_error{"Unable to decompress LZ4 data: " +std::to_string(result)};
 }
 
 uint32_t resource::Texture::CalculateBufferSizeForMipLevel(uint8_t mipLevel)
@@ -856,9 +936,12 @@ uint32_t resource::Texture::CalculateBufferSizeForMipLevel(uint8_t mipLevel)
 
 	if (m_format == VTexFormat::DXT1
 		|| m_format == VTexFormat::DXT5
+		|| m_format == VTexFormat::BC6H
+		|| m_format == VTexFormat::BC7
 		|| m_format == VTexFormat::ETC2
 		|| m_format == VTexFormat::ETC2_EAC
-		|| m_format == VTexFormat::ATI1N)
+		|| m_format == VTexFormat::ATI1N
+		|| m_format == VTexFormat::ATI2N)
 	{
 		auto misalign = width % 4;
 
@@ -899,76 +982,63 @@ uint32_t resource::Texture::CalculateBufferSizeForMipLevel(uint8_t mipLevel)
 
 ////////////////
 
-resource::KVValue::KVValue(KVType type,const std::shared_ptr<void> &value,KVFlag flags)
-	: m_object{value},m_flags{flags}
+resource::KVValue::KVValue(KVType type,std::shared_ptr<void> value,KVFlag flags)
+	: m_object{value},m_flags{flags},m_type{type}
 {}
 void *resource::KVValue::GetObject() {return m_object.get();}
 const void *resource::KVValue::GetObject() const {return const_cast<KVValue*>(this)->GetObject();}
 resource::KVFlag resource::KVValue::GetFlags() const {return m_flags;}
-
-////////////////
-
-nullptr_t resource::KVValueNull::GetValue() const {return nullptr;}
-resource::KVType resource::KVValueNull::GetType() const {return KVType::Null;}
-void resource::KVValueNull::DebugPrint(std::stringstream &ss,const std::string &t) const {ss<<t<<"NULL"<<"\n";}
-
-bool resource::KVValueBool::GetValue() const {return *static_cast<bool*>(m_object.get());}
-resource::KVType resource::KVValueBool::GetType() const {return KVType::BOOLEAN;}
-void resource::KVValueBool::DebugPrint(std::stringstream &ss,const std::string &t) const {ss<<t<<(GetValue() ? "true" : "false")<<"\n";}
-
-int64_t resource::KVValueInt64::GetValue() const {return *static_cast<int64_t*>(m_object.get());}
-resource::KVType resource::KVValueInt64::GetType() const {return KVType::INT64;}
-void resource::KVValueInt64::DebugPrint(std::stringstream &ss,const std::string &t) const {ss<<t<<GetValue()<<"\n";}
-
-uint64_t resource::KVValueUInt64::GetValue() const {return *static_cast<uint64_t*>(m_object.get());}
-resource::KVType resource::KVValueUInt64::GetType() const {return KVType::UINT64;}
-void resource::KVValueUInt64::DebugPrint(std::stringstream &ss,const std::string &t) const {ss<<t<<GetValue()<<"\n";}
-
-int32_t resource::KVValueInt32::GetValue() const {return *static_cast<int32_t*>(m_object.get());}
-resource::KVType resource::KVValueInt32::GetType() const {return KVType::INT32;}
-void resource::KVValueInt32::DebugPrint(std::stringstream &ss,const std::string &t) const {ss<<t<<GetValue()<<"\n";}
-
-uint32_t resource::KVValueUInt32::GetValue() const {return *static_cast<uint32_t*>(m_object.get());}
-resource::KVType resource::KVValueUInt32::GetType() const {return KVType::UINT32;}
-void resource::KVValueUInt32::DebugPrint(std::stringstream &ss,const std::string &t) const {ss<<t<<GetValue()<<"\n";}
-
-double resource::KVValueDouble::GetValue() const {return *static_cast<double*>(m_object.get());}
-resource::KVType resource::KVValueDouble::GetType() const {return KVType::DOUBLE;}
-void resource::KVValueDouble::DebugPrint(std::stringstream &ss,const std::string &t) const {ss<<t<<GetValue()<<"\n";}
-
-const std::string &resource::KVValueString::GetValue() const {return *static_cast<std::string*>(m_object.get());}
-resource::KVType resource::KVValueString::GetType() const {return KVType::STRING;}
-void resource::KVValueString::DebugPrint(std::stringstream &ss,const std::string &t) const {ss<<t<<GetValue()<<"\n";}
-
-const resource::BinaryBlob &resource::KVValueBinaryBlob::GetValue() const {return *static_cast<BinaryBlob*>(m_object.get());}
-resource::KVType resource::KVValueBinaryBlob::GetType() const {return KVType::BINARY_BLOB;}
-void resource::KVValueBinaryBlob::DebugPrint(std::stringstream &ss,const std::string &t) const
+resource::KVType resource::KVValue::GetType() const {return m_type;}
+void resource::KVValue::DebugPrint(std::stringstream &ss,const std::string &t) const
 {
-	ss<<t<<"BinaryBlob["<<GetValue().size()<<"]"<<"\n";
-}
-
-const resource::KVObject &resource::KVValueArray::GetValue() const {return *static_cast<KVObject*>(m_object.get());}
-resource::KVType resource::KVValueArray::GetType() const {return KVType::ARRAY;}
-void resource::KVValueArray::DebugPrint(std::stringstream &ss,const std::string &t) const
-{
-	ss<<t<<"KVValueArray:\n";
-	GetValue().DebugPrint(ss,t +"\t");
-}
-
-const resource::KVObject &resource::KVValueArrayTyped::GetValue() const {return *static_cast<KVObject*>(m_object.get());}
-resource::KVType resource::KVValueArrayTyped::GetType() const {return KVType::ARRAY_TYPED;}
-void resource::KVValueArrayTyped::DebugPrint(std::stringstream &ss,const std::string &t) const
-{
-	ss<<t<<"KVValueArrayTyped\n";
-	GetValue().DebugPrint(ss,t +"\t");
-}
-
-const resource::KVObject &resource::KVValueObject::GetValue() const {return *static_cast<KVObject*>(m_object.get());}
-resource::KVType resource::KVValueObject::GetType() const {return KVType::OBJECT;}
-void resource::KVValueObject::DebugPrint(std::stringstream &ss,const std::string &t) const
-{
-	ss<<t<<"KVValueObject\n";
-	GetValue().DebugPrint(ss,t +"\t");
+	ss<<t<<"KVValue = {\n";
+	ss<<t<<"\tType = "<<to_string(m_type)<<"\n";
+	ss<<t<<"\tValue = ";
+	switch(m_type)
+	{
+	case KVType::Invalid:
+		ss<<"";
+		break;
+	case KVType::Null:
+		ss<<"null";
+		break;
+	case KVType::BOOLEAN:
+		ss<<*static_cast<const bool*>(GetObject());
+		break;
+	case KVType::INT64:
+		ss<<*static_cast<const int64_t*>(GetObject());
+		break;
+	case KVType::UINT64:
+		ss<<*static_cast<const uint64_t*>(GetObject());
+		break;
+	case KVType::DOUBLE:
+		ss<<*static_cast<const double*>(GetObject());
+		break;
+	case KVType::STRING:
+	case KVType::STRING_MULTI:
+		ss<<*static_cast<const std::string*>(GetObject());
+		break;
+	case KVType::BINARY_BLOB:
+		ss<<"[BINARY_BLOB]";
+		break;
+	case KVType::ARRAY:
+		ss<<"[ARRAY]";
+		break;
+	case KVType::OBJECT:
+		ss<<"[OBJECT]";
+		break;
+	case KVType::ARRAY_TYPED:
+		ss<<"[ARRAY_TYPED]";
+		break;
+	case KVType::INT32:
+		ss<<*static_cast<const int32_t*>(GetObject());
+		break;
+	case KVType::UINT32:
+		ss<<*static_cast<const uint32_t*>(GetObject());
+		break;
+	}
+	ss<<"\n";
+	ss<<t<<"}\n";
 }
 
 ////////////////
@@ -985,13 +1055,34 @@ resource::KVValue *resource::KVObject::FindValue(const std::string &key)
 	return (it != m_values.end()) ? it->second.get() : nullptr;
 }
 const resource::KVValue *resource::KVObject::FindValue(const std::string &key) const {return const_cast<KVObject*>(this)->FindValue(key);}
-
-void resource::KVObject::AddProperty(const std::string &name,const std::shared_ptr<KVValue> &value)
+resource::KVObject *resource::KVObject::FindArray(const std::string &key)
 {
+	auto oval = FindValue<KVObject*>(key,KVType::ARRAY_TYPED);
+	if(oval.has_value() == false)
+		oval = FindValue<KVObject*>(key,KVType::ARRAY);
+	if(oval.has_value() == false || *oval == nullptr)
+		return nullptr;
+	return *oval;
+}
+const resource::KVObject *resource::KVObject::FindArray(const std::string &key) const {return const_cast<KVObject*>(this)->FindArray(key);}
+resource::BinaryBlob *resource::KVObject::FindBinaryBlob(const std::string &key)
+{
+	auto *val = FindValue(key);
+	if(val == nullptr || val->GetType() != KVType::BINARY_BLOB)
+		return {};
+	auto oBlob = val->GetObjectValue<BinaryBlob*>();
+	if(oBlob.has_value() == false || *oBlob == nullptr)
+		return {};
+	return *oBlob;
+}
+
+void resource::KVObject::AddProperty(const std::string &name,KVValue &value)
+{
+	auto pvalue = value.shared_from_this();
 	if(m_isArray)
-		m_values.insert(std::make_pair(std::to_string(m_count),value));
+		m_values.insert(std::make_pair(std::to_string(m_count),pvalue));
 	else
-		m_values.insert(std::make_pair(name,value));
+		m_values.insert(std::make_pair(name,pvalue));
 	++m_count;
 }
 
@@ -1031,7 +1122,8 @@ const std::array<uint8_t,16> source2::resource::BinaryKV3::ENCODING = { 0x46, 0x
 const std::array<uint8_t,16> source2::resource::BinaryKV3::FORMAT = { 0x7C, 0x16, 0x12, 0x74, 0xE9, 0x06, 0x98, 0x46, 0xAF, 0xF2, 0xE6, 0x3E, 0xB5, 0x90, 0x37, 0xE7 };
 const std::array<uint8_t,4> source2::resource::BinaryKV3::SIG = { 0x56, 0x4B, 0x56, 0x03 }; // VKV3 (3 isn't ascii, its 0x03)
 const std::vector<std::string> &resource::BinaryKV3::GetStringArray() const {return m_stringArray;}
-const std::shared_ptr<resource::KVObject> &resource::BinaryKV3::GetData() const {return m_data;}
+const std::shared_ptr<resource::KVObject> &resource::BinaryKV3::GetData() const {return const_cast<BinaryKV3*>(this)->GetData();}
+std::shared_ptr<resource::KVObject> &resource::BinaryKV3::GetData() {return m_data;}
 resource::BinaryKV3::BinaryKV3(BlockType type)
 	: m_blockType{type}
 {}
@@ -1279,6 +1371,15 @@ std::pair<resource::KVType,resource::KVFlag> resource::BinaryKV3::ReadType(DataS
 	return {static_cast<resource::KVType>(databyte),flagInfo};
 }
 
+std::shared_ptr<resource::KVValue> resource::BinaryKV3::MakeValue(KVType type,std::shared_ptr<void> data,KVFlag flag)
+{
+	auto realType = ConvertBinaryOnlyKVType(type);
+	if (flag != KVFlag::None)
+		return std::make_shared<KVValue>(realType, data, flag);
+
+	return std::make_shared<KVValue>(realType, data);
+}
+
 resource::KVType resource::BinaryKV3::ConvertBinaryOnlyKVType(KVType type)
 {
 	switch (type)
@@ -1288,13 +1389,15 @@ resource::KVType resource::BinaryKV3::ConvertBinaryOnlyKVType(KVType type)
 	case KVType::BOOLEAN_FALSE:
 		return KVType::BOOLEAN;
 	case KVType::INT64:
-	case KVType::INT32:
 	case KVType::INT64_ZERO:
 	case KVType::INT64_ONE:
 		return KVType::INT64;
+	case KVType::INT32:
+		return KVType::INT32;
 	case KVType::UINT64:
-	case KVType::UINT32:
 		return KVType::UINT64;
+	case KVType::UINT32:
+		return KVType::UINT32;
 	case KVType::DOUBLE:
 	case KVType::DOUBLE_ZERO:
 	case KVType::DOUBLE_ONE:
@@ -1306,24 +1409,44 @@ resource::KVType resource::BinaryKV3::ConvertBinaryOnlyKVType(KVType type)
 	return type;
 }
 
+#if 0
 template<class TKVValue,typename T>
 	std::shared_ptr<resource::KVValue> resource::BinaryKV3::MakeValue(KVType type, T data, KVFlag flag)
 {
-	return MakeValueFromPtr<TKVValue>(type,std::make_shared<T>(data),flag);
+	auto v = std::make_shared<T>(data);
+	return std::static_pointer_cast<resource::KVValue>(MakeValueFromPtr<TKVValue>(type,*v,flag));
+}
+
+template<class TKVValue,typename TPtr>
+	std::shared_ptr<resource::KVValue> resource::BinaryKV3::MakeValueFromPtr(KVType type, TPtr &data, KVFlag flag)
+{
+	auto pdata = data.shared_from_this();
+	auto realType = ConvertBinaryOnlyKVType(type);
+
+	if (flag != KVFlag::None)
+	{
+		auto p = std::make_shared<TKVValue>(realType, pdata, flag);
+		return std::static_pointer_cast<resource::KVValue>(p);
+	}
+	auto p = std::make_shared<TKVValue>(realType, pdata);
+	return std::static_pointer_cast<resource::KVValue>(p);
 }
 
 template<class TKVValue>
-	std::shared_ptr<resource::KVValue> resource::BinaryKV3::MakeValueFromPtr(KVType type, const std::shared_ptr<void> &data, KVFlag flag)
+	std::shared_ptr<resource::KVValue> resource::BinaryKV3::MakeValueFromPtr(KVType type, nullptr_t nptr, KVFlag flag)
 {
 	auto realType = ConvertBinaryOnlyKVType(type);
 
 	if (flag != KVFlag::None)
-		return std::make_shared<TKVValue>(realType, data, flag);
-
-	return std::make_shared<TKVValue>(realType, data);
+	{
+		auto p = std::make_shared<TKVValue>(realType, nptr, flag);
+		return std::static_pointer_cast<resource::KVValue>(p);
+	}
+	auto p = std::make_shared<TKVValue>(realType, nptr);
+	return std::static_pointer_cast<resource::KVValue>(p);
 }
-
-std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const std::string &name, KVType datatype, KVFlag flagInfo, DataStream ds, KVObject *parent)
+#endif
+std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const std::string &name, KVType datatype, KVFlag flagInfo, DataStream ds, std::shared_ptr<KVObject> parent)
 {
 	auto currentOffset = ds->GetOffset();
 
@@ -1331,13 +1454,18 @@ std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const s
 	switch (datatype)
 	{
 	case KVType::Null:
-		parent->AddProperty(name, MakeValueFromPtr<KVValueNull>(datatype, nullptr, flagInfo));
+	{
+		auto v = MakeValue(datatype, nullptr, flagInfo);
+		parent->AddProperty(name, *v);
 		break;
+	}
 	case KVType::BOOLEAN:
+	{
 		if (m_currentBinaryBytesOffset > -1)
 			ds->SetOffset(m_currentBinaryBytesOffset);
 
-		parent->AddProperty(name, MakeValue<KVValueBool,bool>(datatype, ds->Read<bool>(), flagInfo));
+		auto v = MakeValue(datatype, std::make_shared<bool>(ds->Read<bool>()), flagInfo);
+		parent->AddProperty(name, *v);
 
 		if (m_currentBinaryBytesOffset > -1)
 		{
@@ -1346,23 +1474,38 @@ std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const s
 		}
 
 		break;
+	}
 	case KVType::BOOLEAN_TRUE:
-		parent->AddProperty(name, MakeValue<KVValueBool,bool>(datatype, true, flagInfo));
+	{
+		auto v = MakeValue(datatype, std::make_shared<bool>(true), flagInfo);
+		parent->AddProperty(name, *v);
 		break;
+	}
 	case KVType::BOOLEAN_FALSE:
-		parent->AddProperty(name, MakeValue<KVValueBool,bool>(datatype, false, flagInfo));
+	{
+		auto v = MakeValue(datatype, std::make_shared<bool>(false), flagInfo);
+		parent->AddProperty(name, *v);
 		break;
+	}
 	case KVType::INT64_ZERO:
-		parent->AddProperty(name, MakeValue<KVValueInt64,int64_t>(datatype, 0ll, flagInfo));
+	{
+		auto v = MakeValue(datatype, std::make_shared<int64_t>(0ll), flagInfo);
+		parent->AddProperty(name, *v);
 		break;
+	}
 	case KVType::INT64_ONE:
-		parent->AddProperty(name, MakeValue<KVValueInt64,int64_t>(datatype, 1ull, flagInfo));
+	{
+		auto v = MakeValue(datatype, std::make_shared<int64_t>(1ull), flagInfo);
+		parent->AddProperty(name, *v);
 		break;
+	}
 	case KVType::INT64:
+	{
 		if (m_currentEightBytesOffset > 0)
 			ds->SetOffset(m_currentEightBytesOffset);
 
-		parent->AddProperty(name, MakeValue<KVValueInt64,int64_t>(datatype, ds->Read<int64_t>(), flagInfo));
+		auto v = MakeValue(datatype, std::make_shared<int64_t>(ds->Read<int64_t>()), flagInfo);
+		parent->AddProperty(name, *v);
 
 		if (m_currentEightBytesOffset > 0)
 		{
@@ -1371,11 +1514,14 @@ std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const s
 		}
 
 		break;
+	}
 	case KVType::UINT64:
+	{
 		if (m_currentEightBytesOffset > 0)
 			ds->SetOffset(m_currentEightBytesOffset);
 
-		parent->AddProperty(name, MakeValue<KVValueUInt64,uint64_t>(datatype, ds->Read<uint64_t>(), flagInfo));
+		auto v = MakeValue(datatype, std::make_shared<uint64_t>(ds->Read<uint64_t>()), flagInfo);
+		parent->AddProperty(name, *v);
 
 		if (m_currentEightBytesOffset > 0)
 		{
@@ -1384,17 +1530,26 @@ std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const s
 		}
 
 		break;
+	}
 	case KVType::INT32:
-		parent->AddProperty(name, MakeValue<KVValueInt32,int32_t>(datatype, ds->Read<int32_t>(), flagInfo));
+	{
+		auto v = MakeValue(datatype, std::make_shared<int32_t>(ds->Read<int32_t>()), flagInfo);
+		parent->AddProperty(name, *v);
 		break;
+	}
 	case KVType::UINT32:
-		parent->AddProperty(name, MakeValue<KVValueUInt32,uint32_t>(datatype, ds->Read<uint32_t>(), flagInfo));
+	{
+		auto v = MakeValue(datatype, std::make_shared<uint32_t>(ds->Read<uint32_t>()), flagInfo);
+		parent->AddProperty(name, *v);
 		break;
+	}
 	case KVType::DOUBLE:
+	{
 		if (m_currentEightBytesOffset > 0)
 			ds->SetOffset(m_currentEightBytesOffset);
 
-		parent->AddProperty(name, MakeValue<KVValueDouble,double>(datatype, ds->Read<double>(), flagInfo));
+		auto v = MakeValue(datatype, std::make_shared<double>(ds->Read<double>()), flagInfo);
+		parent->AddProperty(name,*v);
 
 		if (m_currentEightBytesOffset > 0)
 		{
@@ -1403,16 +1558,24 @@ std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const s
 		}
 
 		break;
+	}
 	case KVType::DOUBLE_ZERO:
-		parent->AddProperty(name, MakeValue<KVValueDouble,double>(datatype, 0.0, flagInfo));
+	{
+		auto v = MakeValue(datatype, std::make_shared<double>(0.0), flagInfo);
+		parent->AddProperty(name, *v);
 		break;
+	}
 	case KVType::DOUBLE_ONE:
-		parent->AddProperty(name, MakeValue<KVValueDouble,double>(datatype, 1.0, flagInfo));
+	{
+		auto v = MakeValue(datatype, std::make_shared<double>(1.0), flagInfo);
+		parent->AddProperty(name, *v);
 		break;
+	}
 	case KVType::STRING:
 	{
 		auto id = ds->Read<int32_t>();
-		parent->AddProperty(name, MakeValue<KVValueString,std::string>(datatype, id == -1 ? std::string{} : m_stringArray.at(id), flagInfo));
+		auto v = MakeValue(datatype, std::make_shared<std::string>(id == -1 ? std::string{} : m_stringArray.at(id)), flagInfo);
+		parent->AddProperty(name, *v);
 		break;
 	}
 	case KVType::BINARY_BLOB:
@@ -1426,7 +1589,8 @@ std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const s
 		data->resize(length);
 		ds->Read(data->data(),length);
 		value = data;
-		parent->AddProperty(name, MakeValueFromPtr<KVValueBinaryBlob>(datatype, data, flagInfo));
+		auto v = MakeValue(datatype, data, flagInfo);
+		parent->AddProperty(name, *v);
 
 		if (m_currentBinaryBytesOffset > -1)
 		{
@@ -1441,10 +1605,11 @@ std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const s
 		auto arrayLength = ds->Read<int32_t>();
 		auto array = std::make_shared<KVObject>(name, true);
 		for(auto i=decltype(arrayLength){0u};i<arrayLength;++i)
-			ParseBinaryKV3(ds, array.get(), true);
+			ParseBinaryKV3(ds, array, true);
 
 		value = array;
-		parent->AddProperty(name, MakeValueFromPtr<KVValueArray>(datatype, array, flagInfo));
+		auto v = MakeValue(datatype, array, flagInfo);
+		parent->AddProperty(name, *v);
 		break;
 	}
 	case KVType::ARRAY_TYPED:
@@ -1454,10 +1619,11 @@ std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const s
 		auto typedArray = std::make_shared<KVObject>(name, true);
 
 		for(auto i=decltype(typeArrayLength){0u};i<typeArrayLength;++i)
-			ReadBinaryValue(name, type.first, type.second, ds, typedArray.get());
+			ReadBinaryValue(name, type.first, type.second, ds, typedArray);
 
 		value = typedArray;
-		parent->AddProperty(name, MakeValueFromPtr<KVValueArrayTyped>(datatype, typedArray, flagInfo));
+		auto v = MakeValue(datatype, typedArray, flagInfo);
+		parent->AddProperty(name, *v);
 		break;
 	}
 	case KVType::OBJECT:
@@ -1465,13 +1631,16 @@ std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const s
 		auto objectLength = ds->Read<int32_t>();
 		auto newObject = std::make_shared<KVObject>(name, false);
 		for(auto i=decltype(objectLength){0u};i<objectLength;++i)
-			ParseBinaryKV3(ds, newObject.get(), false);
+			ParseBinaryKV3(ds, newObject, false);
 
 		value = newObject;
 		if (parent == nullptr)
-			parent = newObject.get();
+			parent = newObject;
 		else
-			parent->AddProperty(name, MakeValueFromPtr<KVValueObject>(datatype, newObject, flagInfo));
+		{
+			auto v = MakeValue(datatype, newObject, flagInfo);
+			parent->AddProperty(name,*v);
+		}
 
 		break;
 	}
@@ -1479,10 +1648,10 @@ std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const s
 		throw new std::runtime_error{"Unknown KVType " +std::to_string(umath::to_integral(datatype)) +" for field '" +name +"' on byte " +std::to_string(ds->GetOffset() - 1)};
 	}
 
-	return parent ? std::static_pointer_cast<KVObject>(parent->shared_from_this()) : nullptr;
+	return parent ? parent : nullptr;
 }
 
-std::shared_ptr<resource::KVObject> resource::BinaryKV3::ParseBinaryKV3(DataStream &ds,KVObject *parent,bool inArray)
+std::shared_ptr<resource::KVObject> resource::BinaryKV3::ParseBinaryKV3(DataStream &ds,std::shared_ptr<KVObject> parent,bool inArray)
 {
 	std::string name {};
 	if (!inArray)

@@ -237,6 +237,8 @@ namespace source2::resource
 			uint32_t size = 0;
 			std::vector<VertexAttribute> attributes;
 			std::vector<uint8_t> buffer;
+
+			void ReadVertexAttribute(uint32_t offset, const VertexAttribute &attribute,std::vector<float> &outData) const;
 		};
 
 		struct IndexBuffer
@@ -252,7 +254,7 @@ namespace source2::resource
 		const std::vector<VertexBuffer> &GetVertexBuffers() const;
 		const std::vector<IndexBuffer> &GetIndexBuffers() const;
 	private:
-		void ReadVertexAttribute(uint32_t offset, const VertexBuffer &vertexBuffer, VertexAttribute &attribute,std::vector<float> &outData);
+		void ReadVertexAttribute(uint32_t offset, const VertexBuffer &vertexBuffer, const VertexAttribute &attribute,std::vector<float> &outData);
 		std::vector<VertexBuffer> m_vertexBuffers;
 		std::vector<IndexBuffer> m_indexBuffers;
 	};

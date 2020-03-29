@@ -48,10 +48,12 @@ namespace source2::resource
 
 		static uint32_t GetVertexBlockSize(uint32_t vertexSize);
 		static uint8_t Unzigzag8(uint8_t v);
-		static std::vector<uint8_t> DecodeBytesGroup(const std::vector<uint8_t> &data, std::vector<uint8_t> &destination, int bitslog2);
-		static std::vector<uint8_t> DecodeBytes(std::vector<uint8_t> data, std::vector<uint8_t> &destination);
-		static std::vector<uint8_t> DecodeVertexBlock(std::vector<uint8_t> data, std::vector<uint8_t> &vertexData, int vertexCount, int vertexSize, std::vector<uint8_t> &lastVertex);
-		static std::vector<uint8_t> DecodeVertexBuffer(int vertexCount, int vertexSize, std::vector<uint8_t> &vertexBuffer);
+		// Note: These have been moved to the cpp because the span class being used messes with the debugger.
+		// Once C++-20 is available, these should be moved back to the header and tcb::span should be replaced by std::span!
+		//static tcb::span<uint8_t> DecodeBytesGroup(const tcb::span<uint8_t> &data, tcb::span<uint8_t> destination, int bitslog2);
+		//static tcb::span<uint8_t> DecodeBytes(tcb::span<uint8_t> data, tcb::span<uint8_t> destination);
+		//static tcb::span<uint8_t> DecodeVertexBlock(tcb::span<uint8_t> data, tcb::span<uint8_t> vertexData, int vertexCount, int vertexSize, tcb::span<uint8_t> lastVertex);
+		static std::vector<uint8_t> DecodeVertexBuffer(int vertexCount, int vertexSize, const std::vector<uint8_t> &vertexBuffer);
 	};
 
 	class MeshOptimizerIndexDecoder

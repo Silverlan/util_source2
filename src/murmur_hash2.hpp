@@ -23,25 +23,21 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef __SOURCE2_IMPL_HPP__
-#define __SOURCE2_IMPL_HPP__
+#ifndef __SOURCE2_MURMUR_HASH2_HPP__
+#define __SOURCE2_MURMUR_HASH2_HPP__
 
 #include <string>
-#include <memory>
-#include <optional>
-#include <unordered_map>
+#include <vector>
 #include <cinttypes>
 
-class VFilePtrInternal;
-namespace source2::resource
+namespace source2
 {
-	std::string read_offset_string(std::shared_ptr<VFilePtrInternal> f);
-};
-
-namespace source2::impl
-{
-	const std::unordered_map<uint32_t,std::string> &get_known_keyvalues();
-	std::optional<std::string> hash_to_keyvalue(uint32_t hash);
+	namespace murmur2
+	{
+		uint32_t hash(const std::string &data,uint32_t seed);
+		uint32_t hash(const std::vector<uint8_t> &data,uint32_t seed);
+		uint32_t hash(const uint8_t *data,size_t len,uint32_t seed);
+	};
 };
 
 #endif

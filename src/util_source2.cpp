@@ -276,9 +276,9 @@ std::string source2::to_string(BlockType blockType)
 	return "Invalid";
 }
 
-std::shared_ptr<source2::resource::Resource> source2::load_resource(std::shared_ptr<VFilePtrInternal> f)
+std::shared_ptr<source2::resource::Resource> source2::load_resource(std::shared_ptr<VFilePtrInternal> f,const std::function<std::shared_ptr<VFilePtrInternal>(const std::string&)> &fAssetLoader)
 {
-	auto resource = std::make_shared<resource::Resource>();
+	auto resource = std::make_shared<resource::Resource>(fAssetLoader);
 	resource->Read(f);
 	return resource;
 }

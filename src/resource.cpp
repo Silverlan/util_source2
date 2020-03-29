@@ -35,6 +35,27 @@ SOFTWARE.
 using namespace source2;
 
 #pragma optimize("",off)
+resource::Resource::Resource(const std::function<std::shared_ptr<VFilePtrInternal>(const std::string&)> &assetFileLoader)
+	: m_assetFileLoader{assetFileLoader}
+{
+	if(m_assetFileLoader == nullptr)
+	{
+		m_assetFileLoader = [](const std::string &path) -> VFilePtr {
+			return FileManager::OpenFile(path.c_str(),"rb");
+		};
+	}
+}
+std::shared_ptr<VFilePtrInternal> resource::Resource::OpenAssetFile(const std::string &path) const
+{
+	return m_assetFileLoader(path);
+}
+std::shared_ptr<resource::Resource> resource::Resource::LoadResource(const std::string &path) const
+{
+	auto f = OpenAssetFile(path);
+	if(f == nullptr)
+		return nullptr;
+	return load_resource(f,m_assetFileLoader);
+}
 resource::Block *resource::Resource::FindBlock(BlockType type)
 {
 	auto it = std::find_if(m_blocks.begin(),m_blocks.end(),[type](const std::shared_ptr<Block> &block) {
@@ -44,6 +65,21 @@ resource::Block *resource::Resource::FindBlock(BlockType type)
 }
 const resource::Block *resource::Resource::FindBlock(BlockType type) const {return const_cast<Resource*>(this)->FindBlock(type);}
 const std::vector<std::shared_ptr<resource::Block>> &resource::Resource::GetBlocks() const {return m_blocks;}
+std::shared_ptr<resource::Block> resource::Resource::GetBlock(uint32_t idx) const {return (idx < m_blocks.size()) ? m_blocks.at(idx) : nullptr;}
+bool resource::Resource::IsHandledResourceType(ResourceType type)
+{
+	switch(type)
+	{
+	case ResourceType::Model:
+	case ResourceType::World:
+	case ResourceType::WorldNode:
+	case ResourceType::Particle:
+	case ResourceType::Material:
+	case ResourceType::EntityLump:
+		return true;
+	}
+	return false;
+}
 void resource::Resource::Read(std::shared_ptr<VFilePtrInternal> f)
 {
 	auto fileSize = f->Read<uint32_t>();
@@ -69,7 +105,7 @@ void resource::Resource::Read(std::shared_ptr<VFilePtrInternal> f)
 		auto offset = position +f->Read<uint32_t>();
 		auto size = f->Read<uint32_t>();
 		std::shared_ptr<source2::resource::Block> block = nullptr;
-		if(ustring::compare(blockType.data(),"DATA",true,blockType.size()))
+		if(size >= 4 && ustring::compare(blockType.data(),"DATA",true,blockType.size()) && !IsHandledResourceType(m_resourceType))
 		{
 			f->Seek(offset);
 			auto magic = f->Read<uint32_t>();
@@ -170,14 +206,32 @@ std::shared_ptr<source2::resource::ResourceData> resource::Resource::ConstructRe
 	case ResourceType::Texture:
 		return std::make_shared<source2::resource::Texture>();
 
+	case ResourceType::Model:
+		return std::make_shared<source2::resource::Model>(*this);
+
+	case ResourceType::World:
+		return std::make_shared<source2::resource::World>(*this);
+
+	//case ResourceType::Map:
+	//	return std::make_shared<source2::resource::Map>(*this);
+
+	case ResourceType::WorldNode:
+		return std::make_shared<source2::resource::WorldNode>();
+
+	case ResourceType::EntityLump:
+		return std::make_shared<source2::resource::EntityLump>();
+
 	case ResourceType::Material:
 	    return std::make_shared<source2::resource::Material>();
 
 	case ResourceType::SoundEventScript:
 		return std::make_shared<source2::resource::SoundEventScript>();
 
+	case ResourceType::SoundStackScript:
+		return std::make_shared<source2::resource::SoundStackScript>();
+
 	case ResourceType::Particle:
-		return std::make_shared<source2::resource::BinaryKV3>();
+		return std::make_shared<source2::resource::ParticleSystem>();
 
 	case ResourceType::Mesh:
 		if(m_version == 0)

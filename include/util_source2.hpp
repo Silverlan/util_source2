@@ -28,6 +28,7 @@ SOFTWARE.
 
 #include <memory>
 #include <sstream>
+#include <functional>
 
 class VFilePtrInternal;
 namespace source2
@@ -165,7 +166,7 @@ namespace source2
 	std::string to_string(REDIStruct blockType);
 
 	namespace resource {class Resource;};
-	std::shared_ptr<resource::Resource> load_resource(std::shared_ptr<VFilePtrInternal> file);
+	std::shared_ptr<resource::Resource> load_resource(std::shared_ptr<VFilePtrInternal> file,const std::function<std::shared_ptr<VFilePtrInternal>(const std::string&)> &fAssetLoader=nullptr);
 	void debug_print(resource::Resource &resource,std::stringstream &ss);
 };
 

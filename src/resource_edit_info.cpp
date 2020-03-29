@@ -275,6 +275,7 @@ std::string resource::to_string(DXGI_FORMAT format)
 	case DXGI_FORMAT::V408:
 		return "V408";
 	}
+	return "Invalid";
 }
 
 std::string resource::to_string(DataType type)
@@ -334,6 +335,7 @@ std::string resource::to_string(DataType type)
 	case DataType::Vector4D_44:
 		return "Vector4D_44";
 	}
+	return "Invalid";
 }
 
 std::shared_ptr<resource::REDIBlock> resource::ResourceEditInfo::ConstructStruct(REDIStruct id)
@@ -574,7 +576,7 @@ void resource::VBIB::DebugPrint(std::stringstream &ss,const std::string &t) cons
 		}
 		ss<<t<<"\t\t}\n";
 	}
-	ss<<t<<"\Index buffers:\n";
+	ss<<t<<"\tIndex buffers:\n";
 	for(auto i=decltype(m_indexBuffers.size()){0u};i<m_indexBuffers.size();++i)
 	{
 		auto &ibuf = m_indexBuffers.at(i);
@@ -589,37 +591,50 @@ void resource::VBIB::DebugPrint(std::stringstream &ss,const std::string &t) cons
 const std::vector<resource::VBIB::VertexBuffer> &resource::VBIB::GetVertexBuffers() const {return m_vertexBuffers;}
 const std::vector<resource::VBIB::IndexBuffer> &resource::VBIB::GetIndexBuffers() const {return m_indexBuffers;}
 
-void resource::VBIB::ReadVertexAttribute(uint32_t offset, const VertexBuffer &vertexBuffer, VertexAttribute &attribute,std::vector<float> &outData)
+void resource::VBIB::VertexBuffer::ReadVertexAttribute(uint32_t offset, const VertexAttribute &attribute,std::vector<float> &outData) const
 {
-	offset = offset *vertexBuffer.size +attribute.offset;
+	offset = offset *size +attribute.offset;
 
 	switch (attribute.type)
 	{
 	case DXGI_FORMAT::R32G32B32_FLOAT:
 		outData.resize(3);
-		memcpy(outData.data(),vertexBuffer.buffer.data() +offset,outData.size() *sizeof(outData.front()));
+		memcpy(outData.data(),buffer.data() +offset,outData.size() *sizeof(outData.front()));
 		break;
 
 	case DXGI_FORMAT::R16G16_FLOAT:
 	{
 		std::array<uint16_t,2> shorts {};
-		memcpy(shorts.data(),vertexBuffer.buffer.data() +offset,shorts.size() *sizeof(shorts.front()));
+		memcpy(shorts.data(),buffer.data() +offset,shorts.size() *sizeof(shorts.front()));
 
-		outData.reserve(2);
+		outData.resize(2);
 		outData.at(0) = umath::float16_to_float32_glm(shorts.at(0));
-		outData.at(1) = -umath::float16_to_float32_glm(shorts.at(1));
+		outData.at(1) = umath::float16_to_float32_glm(shorts.at(1));
+		break;
+	}
+	case DXGI_FORMAT::R16G16_UNORM:
+	{
+		std::array<uint16_t,2> shorts {};
+		memcpy(shorts.data(),buffer.data() +offset,shorts.size() *sizeof(shorts.front()));
+
+		outData.resize(2);
+		outData.at(0) = shorts.at(0) /static_cast<float>(std::numeric_limits<uint16_t>::max());
+		outData.at(1) = shorts.at(1) /static_cast<float>(std::numeric_limits<uint16_t>::max());
 		break;
 	}
 	case DXGI_FORMAT::R32G32_FLOAT:
 		outData.resize(2);
-		memcpy(outData.data(),vertexBuffer.buffer.data() +offset,outData.size() *sizeof(outData.front()));
-		outData.at(1) *= -1.f; // Flip texcoord
+		memcpy(outData.data(),buffer.data() +offset,outData.size() *sizeof(outData.front()));
+		break;
+	case DXGI_FORMAT::R32_FLOAT:
+		outData.resize(1);
+		memcpy(outData.data(),buffer.data() +offset,outData.size() *sizeof(outData.front()));
 		break;
 	case DXGI_FORMAT::R8G8B8A8_UINT:
 	case DXGI_FORMAT::R8G8B8A8_UNORM:
 	{
 		std::array<uint8_t,4> bytes {};
-		memcpy(bytes.data(),vertexBuffer.buffer.data() +offset,bytes.size() *sizeof(bytes.front()));
+		memcpy(bytes.data(),buffer.data() +offset,bytes.size() *sizeof(bytes.front()));
 
 		outData.resize(4);
 		for(auto i=decltype(outData.size()){0u};i<outData.size();++i)
@@ -634,6 +649,10 @@ void resource::VBIB::ReadVertexAttribute(uint32_t offset, const VertexBuffer &ve
 	default:
 		throw std::runtime_error{"Unsupported \"" +attribute.name +"\" DXGI_FORMAT." +std::to_string(umath::to_integral(attribute.type))};
 	}
+}
+void resource::VBIB::ReadVertexAttribute(uint32_t offset, const VertexBuffer &vertexBuffer, const VertexAttribute &attribute,std::vector<float> &outData)
+{
+	vertexBuffer.ReadVertexAttribute(offset,attribute,outData);
 }
 
 ///////////

@@ -24,18 +24,25 @@ SOFTWARE.
 */
 
 #include "source2/mesh_optimizer.hpp"
+#include "source2/span.hpp"
 #include <sharedutils/datastream.h>
 
 using namespace source2;
 
-static std::vector<uint8_t> slice(const std::vector<uint8_t> &data,uint32_t start,uint32_t len=std::numeric_limits<uint32_t>::max())
+#pragma optimize("",off)
+// TODO: Move these to the header and replace tcb::span with std::span once C++-20 is available
+static tcb::span<uint8_t> DecodeBytesGroup(const tcb::span<uint8_t> &data, tcb::span<uint8_t> destination, int bitslog2);
+static tcb::span<uint8_t> DecodeBytes(tcb::span<uint8_t> data, tcb::span<uint8_t> destination);
+static tcb::span<uint8_t> DecodeVertexBlock(tcb::span<uint8_t> data, tcb::span<uint8_t> vertexData, int vertexCount, int vertexSize, tcb::span<uint8_t> lastVertex);
+
+static tcb::span<uint8_t> slice(const tcb::span<uint8_t> &data,uint32_t start,uint32_t len=std::numeric_limits<uint32_t>::max())
 {
-	if(len == std::numeric_limits<uint32_t>::max())
-		len = data.size() -start;
-	std::vector<uint8_t> result {};
-	result.resize(len);
-	memcpy(result.data(),data.data() +start,len);
-	return result;
+	return data.subspan(start,len);
+}
+
+static void copy_to(const tcb::span<uint8_t> &data,tcb::span<uint8_t> dst)
+{
+	memcpy(dst.data(),data.data(),data.size() *sizeof(data.front()));
 }
 
 uint32_t resource::MeshOptimizerVertexDecoder::GetVertexBlockSize(uint32_t vertexSize)
@@ -51,7 +58,7 @@ uint8_t resource::MeshOptimizerVertexDecoder::Unzigzag8(uint8_t v)
 	return static_cast<uint8_t>(-(v & 1) ^ (v >> 1));
 }
 
-std::vector<uint8_t> resource::MeshOptimizerVertexDecoder::DecodeBytesGroup(const std::vector<uint8_t> &data, std::vector<uint8_t> &destination, int bitslog2)
+tcb::span<uint8_t> DecodeBytesGroup(const tcb::span<uint8_t> &data, tcb::span<uint8_t> destination, int bitslog2)
 {
 	uint32_t dataOffset = 0u;
 	int dataVar;
@@ -70,7 +77,7 @@ std::vector<uint8_t> resource::MeshOptimizerVertexDecoder::DecodeBytesGroup(cons
 	switch (bitslog2)
 	{
 	case 0:
-		for (auto k = 0; k < ByteGroupSize; k++)
+		for (auto k = 0; k < resource::MeshOptimizerVertexDecoder::ByteGroupSize; k++)
 		{
 			destination[k] = 0;
 		}
@@ -142,31 +149,31 @@ std::vector<uint8_t> resource::MeshOptimizerVertexDecoder::DecodeBytesGroup(cons
 		return slice(data,dataVar);
 	case 3:
 	{
-		auto destination = slice(data,0, ByteGroupSize);
+		copy_to(slice(data,0, resource::MeshOptimizerVertexDecoder::ByteGroupSize),destination);
 
-		return slice(data,ByteGroupSize);
+		return slice(data,resource::MeshOptimizerVertexDecoder::ByteGroupSize);
 	}
 	default:
 		throw std::invalid_argument{"Unexpected bit length"};
 	}
 }
 
-std::vector<uint8_t> resource::MeshOptimizerVertexDecoder::DecodeBytes(std::vector<uint8_t> data, std::vector<uint8_t> &destination)
+tcb::span<uint8_t> DecodeBytes(tcb::span<uint8_t> data, tcb::span<uint8_t> destination)
 {
-	if (destination.size() % ByteGroupSize != 0)
+	if (destination.size() % resource::MeshOptimizerVertexDecoder::ByteGroupSize != 0)
 		throw std::invalid_argument{"Expected data length to be a multiple of ByteGroupSize."};
 
-	auto headerSize = ((destination.size() / ByteGroupSize) + 3) / 4;
+	auto headerSize = ((destination.size() / resource::MeshOptimizerVertexDecoder::ByteGroupSize) + 3) / 4;
 	auto header = slice(data,0);
 
 	data = slice(data,headerSize);
 
-	for (auto i = 0; i < destination.size(); i += ByteGroupSize)
+	for (auto i = 0; i < destination.size(); i += resource::MeshOptimizerVertexDecoder::ByteGroupSize)
 	{
-		if (data.size() < TailMaxSize)
+		if (data.size() < resource::MeshOptimizerVertexDecoder::TailMaxSize)
 			throw std::runtime_error{"Cannot decode"};
 
-		auto headerOffset = i / ByteGroupSize;
+		auto headerOffset = i / resource::MeshOptimizerVertexDecoder::ByteGroupSize;
 
 		auto bitslog2 = (header[headerOffset / 4] >> ((headerOffset % 4) * 2)) & 3;
 
@@ -176,17 +183,17 @@ std::vector<uint8_t> resource::MeshOptimizerVertexDecoder::DecodeBytes(std::vect
 	return data;
 }
 
-std::vector<uint8_t> resource::MeshOptimizerVertexDecoder::DecodeVertexBlock(std::vector<uint8_t> data, std::vector<uint8_t> &vertexData, int vertexCount, int vertexSize, std::vector<uint8_t> &lastVertex)
+tcb::span<uint8_t> DecodeVertexBlock(tcb::span<uint8_t> data, tcb::span<uint8_t> vertexData, int vertexCount, int vertexSize, tcb::span<uint8_t> lastVertex)
 {
-	if (vertexCount <= 0 || vertexCount > VertexBlockMaxSize)
+	if (vertexCount <= 0 || vertexCount > resource::MeshOptimizerVertexDecoder::VertexBlockMaxSize)
 		throw new std::invalid_argument{"Expected vertexCount to be between 0 and VertexMaxBlockSize"};
 
 	std::vector<uint8_t> buffer {};
-	buffer.resize(VertexBlockMaxSize);
+	buffer.resize(resource::MeshOptimizerVertexDecoder::VertexBlockMaxSize);
 	std::vector<uint8_t> transposed {};
-	transposed.resize(VertexBlockSizeBytes);
+	transposed.resize(resource::MeshOptimizerVertexDecoder::VertexBlockSizeBytes);
 
-	auto vertexCountAligned = (vertexCount + ByteGroupSize - 1) & ~(ByteGroupSize - 1);
+	auto vertexCountAligned = (vertexCount + resource::MeshOptimizerVertexDecoder::ByteGroupSize - 1) & ~(resource::MeshOptimizerVertexDecoder::ByteGroupSize - 1);
 
 	for (auto k = 0; k < vertexSize; ++k)
 	{
@@ -198,7 +205,7 @@ std::vector<uint8_t> resource::MeshOptimizerVertexDecoder::DecodeVertexBlock(std
 
 		for (auto i = 0; i < vertexCount; ++i)
 		{
-			auto v = (uint8_t)(Unzigzag8(buffer[i]) + p);
+			auto v = (uint8_t)(resource::MeshOptimizerVertexDecoder::Unzigzag8(buffer[i]) + p);
 
 			transposed[vertexOffset] = v;
 			p = v;
@@ -207,14 +214,14 @@ std::vector<uint8_t> resource::MeshOptimizerVertexDecoder::DecodeVertexBlock(std
 		}
 	}
 
-	vertexData = slice(transposed,0, vertexCount * vertexSize);
+	copy_to(slice(transposed,0, vertexCount * vertexSize),vertexData);
 
-	lastVertex = slice(transposed,vertexSize * (vertexCount - 1), vertexSize);
+	copy_to(slice(transposed,vertexSize * (vertexCount - 1), vertexSize),lastVertex);
 
 	return data;
 }
 
-std::vector<uint8_t> resource::MeshOptimizerVertexDecoder::DecodeVertexBuffer(int vertexCount, int vertexSize, std::vector<uint8_t> &vertexBuffer)
+std::vector<uint8_t> resource::MeshOptimizerVertexDecoder::DecodeVertexBuffer(int vertexCount, int vertexSize, const std::vector<uint8_t> &vertexBuffer)
 {
 	if (vertexSize <= 0 || vertexSize > 256)
 		throw std::invalid_argument{"Vertex size is expected to be between 1 and 256"};
@@ -229,7 +236,7 @@ std::vector<uint8_t> resource::MeshOptimizerVertexDecoder::DecodeVertexBuffer(in
 		throw std::invalid_argument{"Vertex buffer is too short."};
 	}
 
-	auto vertexSpan = vertexBuffer;
+	auto vertexSpan = tcb::span<uint8_t>{const_cast<std::vector<uint8_t>&>(vertexBuffer)};
 
 	auto header = vertexSpan[0];
 	vertexSpan = slice(vertexSpan,1);
@@ -238,7 +245,10 @@ std::vector<uint8_t> resource::MeshOptimizerVertexDecoder::DecodeVertexBuffer(in
 		throw std::invalid_argument{"Invalid vertex buffer header, expected " +std::to_string(VertexHeader) +" but got " +std::to_string(header) +"."};
 	}
 
-	auto lastVertex = slice(vertexSpan,vertexBuffer.size() - 1 - vertexSize, vertexSize);
+	std::vector<uint8_t> lastVertex {};
+	lastVertex.resize(vertexSize);
+
+	copy_to(slice(vertexSpan,vertexBuffer.size() - 1 - vertexSize, vertexSize),lastVertex);
 
 	auto vertexBlockSize = GetVertexBlockSize(vertexSize);
 
@@ -362,6 +372,7 @@ std::vector<uint8_t> resource::MeshOptimizerIndexDecoder::DecodeIndexBuffer(int 
 	destination.resize(indexCount * indexSize);
 
 	DataStream ds {data.data(),static_cast<uint32_t>(data.size() *sizeof(data.front()))};
+	ds->SetOffset(0);
 	for (auto i = 0; i < indexCount; i += 3)
 	{
 		auto codetri = buffer[bufferIndex++];
@@ -476,3 +487,4 @@ std::vector<uint8_t> resource::MeshOptimizerIndexDecoder::DecodeIndexBuffer(int 
 
 	return destination;
 }
+#pragma optimize("",on)
