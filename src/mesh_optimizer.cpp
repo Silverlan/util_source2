@@ -29,7 +29,6 @@ SOFTWARE.
 
 using namespace source2;
 
-#pragma optimize("",off)
 // TODO: Move these to the header and replace tcb::span with std::span once C++-20 is available
 static tcb::span<uint8_t> DecodeBytesGroup(const tcb::span<uint8_t> &data, tcb::span<uint8_t> destination, int bitslog2);
 static tcb::span<uint8_t> DecodeBytes(tcb::span<uint8_t> data, tcb::span<uint8_t> destination);
@@ -487,4 +486,3 @@ std::vector<uint8_t> resource::MeshOptimizerIndexDecoder::DecodeIndexBuffer(int 
 
 	return destination;
 }
-#pragma optimize("",on)

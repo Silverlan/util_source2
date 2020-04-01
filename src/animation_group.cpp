@@ -3,7 +3,6 @@
 
 using namespace source2;
 
-#pragma optimize("",off)
 resource::AnimationGroup::AnimationGroup(ResourceData &animationData)
 	: m_data{animationData.GetData()}
 {}
@@ -18,4 +17,3 @@ std::vector<std::string> resource::AnimationGroup::GetAnimationArray() const
 {
 	return m_data->FindArrayValues<std::string>("m_localHAnimArray");
 }
-#pragma optimize("",on)

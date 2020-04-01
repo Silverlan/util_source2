@@ -3,7 +3,6 @@
 
 using namespace source2;
 
-#pragma optimize("",off)
 resource::World::World(Resource &resource)
 	: m_resource{resource}
 {}
@@ -47,4 +46,3 @@ std::vector<std::string> resource::World::GetWorldNodeNames() const
 	}
 	return worldNodeNames;
 }
-#pragma optimize("",on)

@@ -747,21 +747,22 @@ namespace source2::resource
 		: public std::enable_shared_from_this<Bone>
 	{
 	public:
-		static std::shared_ptr<Bone> Create(const std::string &name,const std::vector<int32_t> &skinIndices,const Vector3 &position,const Quat &rotation);
+		static std::shared_ptr<Bone> Create(const std::string &name,const std::vector<std::vector<int32_t>> &skinIndicesPerMesh,const Vector3 &position,const Quat &rotation);
 		void AddChild(Bone &bone);
 		void SetParent(Bone &parent);
 		const std::string &GetName() const;
 		Bone *GetParent() const;
 		const std::vector<std::shared_ptr<Bone>> &GetChildren() const;
-		const std::vector<int32_t> &GetSkinIndices() const;
+		const std::vector<std::vector<int32_t>> &GetSkinIndicesPerMesh() const;
+		const std::vector<int32_t> *GetSkinIndices(uint32_t meshIdx) const;
 		const Vector3 &GetPosition() const;
 		const Quat &GetRotation() const;
 	private:
-		Bone(const std::string &name,const std::vector<int32_t> &skinIndices,const Vector3 &position,const Quat &rotation);
+		Bone(const std::string &name,const std::vector<std::vector<int32_t>> &skinIndices,const Vector3 &position,const Quat &rotation);
 		std::string m_name;
 		std::weak_ptr<Bone> m_parent = {};
 		std::vector<std::shared_ptr<Bone>> m_children = {};
-		std::vector<int32_t> m_skinIndices = {};
+		std::vector<std::vector<int32_t>> m_skinIndicesPerMesh = {};
 		Vector3 m_position = {};
 		Quat m_rotation = uquat::identity();
 	};
@@ -775,8 +776,8 @@ namespace source2::resource
 		const std::vector<std::shared_ptr<Bone>> &GetRootBones() const;
 		const std::vector<std::shared_ptr<Bone>> &GetBoneList() const;
 	private:
-		Skeleton(IKeyValueCollection &skeletonData,const std::unordered_map<int32_t,std::vector<int32_t>> &invMapTable);
-		void ConstructFromNTRO(IKeyValueCollection &skeletonData,const std::unordered_map<int32_t,std::vector<int32_t>> &invMapTable);
+		Skeleton(IKeyValueCollection &skeletonData,const std::vector<std::unordered_map<int32_t,std::vector<int32_t>>> &invMapTablePerMesh);
+		void ConstructFromNTRO(IKeyValueCollection &skeletonData,const std::vector<std::unordered_map<int32_t,std::vector<int32_t>>> &invMapTablePerMesh);
 		std::vector<std::shared_ptr<Bone>> m_rootBones = {};
 		std::vector<std::shared_ptr<Bone>> m_boneList = {};
 	};

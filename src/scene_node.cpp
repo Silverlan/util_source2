@@ -2,7 +2,6 @@
 
 using namespace source2;
 
-#pragma optimize("",off)
 resource::SceneNode::SceneNode(Scene &scene,std::shared_ptr<Resource> resource)
 	: m_scene{scene},m_resource{resource}
 {}
@@ -12,4 +11,3 @@ void resource::SceneNode::SetLayerEnabled(bool enabled) {m_layerEnabled = enable
 const Mat4 &resource::SceneNode::GetTransform() const {return m_transform;}
 void resource::SceneNode::SetTransform(const Mat4 &transform) {m_transform = transform;}
 const std::shared_ptr<resource::Resource> &resource::SceneNode::GetResource() const {return m_resource;}
-#pragma optimize("",on)

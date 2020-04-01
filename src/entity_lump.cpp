@@ -6,7 +6,6 @@
 
 using namespace source2;
 
-#pragma optimize("",off)
 std::optional<std::string> resource::EntityProperty::ToString() const
 {
 	switch(type)
@@ -156,22 +155,3 @@ void resource::EntityLump::ReadTypedValue(DataStream &ds,uint32_t keyHash,const 
 	}
 	properties.insert(std::make_pair(keyHash,property));
 }
-
-
-
-
-#if 0
-std::vector<std::string> resource::EntityLump::GetEntityLumpNames() const
-{
-	auto *data = dynamic_cast<KVObject*>(GetData().get());
-	if(data == nullptr)
-		return {};
-	return data->FindArrayValues<std::string>("m_entityLumps");
-}
-std::vector<std::string> resource::EntityLump::GetWorldNodeNames() const
-{
-
-	return {};
-}
-#endif
-#pragma optimize("",on)

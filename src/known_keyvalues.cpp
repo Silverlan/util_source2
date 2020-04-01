@@ -2,7 +2,6 @@
 #include "murmur_hash2.hpp"
 #include "source2/resource_data.hpp"
 
-#pragma optimize("",off)
 const std::unordered_map<uint32_t,std::string> &source2::impl::get_known_keyvalues()
 {
 	static auto initialized = false;
@@ -27,4 +26,3 @@ std::optional<std::string> source2::impl::hash_to_keyvalue(uint32_t hash)
 	auto it = knownKeyValues.find(hash);
 	return (it != knownKeyValues.end()) ? it->second : std::optional<std::string>{};
 }
-#pragma optimize("",on)

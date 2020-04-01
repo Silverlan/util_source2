@@ -3,7 +3,6 @@
 
 using namespace source2;
 
-#pragma optimize("",off)
 std::shared_ptr<resource::Mesh> resource::Mesh::Create(ResourceData &data,VBIB &vbib)
 {
 	return std::shared_ptr<Mesh>{new Mesh{data,vbib}};
@@ -93,4 +92,3 @@ void resource::Mesh::UpdateBounds()
 
 	return meshes;*/
 }
-#pragma optimize("",on)

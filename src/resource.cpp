@@ -80,7 +80,7 @@ bool resource::Resource::IsHandledResourceType(ResourceType type)
 	}
 	return false;
 }
-void resource::Resource::Read(std::shared_ptr<VFilePtrInternal> f)
+bool resource::Resource::Read(std::shared_ptr<VFilePtrInternal> f)
 {
 	auto fileSize = f->Read<uint32_t>();
 	if (fileSize == 0x55AA1234)
@@ -91,7 +91,7 @@ void resource::Resource::Read(std::shared_ptr<VFilePtrInternal> f)
 	auto headerVersion = f->Read<uint16_t>();
 	constexpr uint32_t knownHeaderVersion = 12u;
 	if (headerVersion != knownHeaderVersion)
-		throw std::runtime_error{"(Bad header version. (" +std::to_string(headerVersion) +" != expected " +std::to_string(knownHeaderVersion) +")"};
+		throw std::runtime_error{"Bad header version. (" +std::to_string(headerVersion) +" != expected " +std::to_string(knownHeaderVersion) +")"};
 
 	m_version = f->Read<uint16_t>();
 	auto startOffset = f->Tell();
@@ -119,6 +119,8 @@ void resource::Resource::Read(std::shared_ptr<VFilePtrInternal> f)
 		block->SetOffset(offset);
 		block->SetSize(size);
 		block->Read(*this,f);
+		if(block->IsValid() == false)
+			return false;
 
 		m_blocks.push_back(block);
 
@@ -152,6 +154,7 @@ void resource::Resource::Read(std::shared_ptr<VFilePtrInternal> f)
 
 		f->Seek(position +sizeof(uint32_t) *2);
 	}
+	return true;
 }
 std::shared_ptr<source2::resource::Block> resource::Resource::ConstructFromType(std::string input)
 {

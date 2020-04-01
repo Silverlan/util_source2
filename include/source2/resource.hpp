@@ -46,7 +46,7 @@ namespace source2::resource
 		const Block *FindBlock(BlockType type) const;
 		const std::vector<std::shared_ptr<Block>> &GetBlocks() const;
 		std::shared_ptr<Block> GetBlock(uint32_t idx) const;
-		void Read(std::shared_ptr<VFilePtrInternal> f);
+		bool Read(std::shared_ptr<VFilePtrInternal> f);
 		std::shared_ptr<source2::resource::Block> ConstructFromType(std::string input);
 		std::shared_ptr<source2::resource::ResourceData> ConstructResourceType();
 

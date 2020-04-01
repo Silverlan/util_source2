@@ -3,7 +3,6 @@
 
 using namespace source2;
 
-#pragma optimize("",off)
 void resource::Frame::SetPosition(const std::string &bone,const Vector3 &pos)
 {
 	InsertIfUnknown(bone);
@@ -23,4 +22,3 @@ void resource::Frame::InsertIfUnknown(const std::string &bone)
 		return;
 	m_bones.insert(std::make_pair(bone,FrameBone{Vector3{},uquat::identity()}));
 }
-#pragma optimize("",on)

@@ -386,8 +386,6 @@ std::shared_ptr<resource::NTROStruct> resource::NTRO::ReadStructure(
 )
 {
 	auto structEntry = std::make_shared<NTROStruct>(refStruct.name);
-	if(refStruct.name == "PermModelData_t")
-		std::cout<<"";
 	for(auto &field : refStruct.fieldIntrospection)
 	{
 		f->Seek(startingOffset +field.diskOffset);
@@ -1136,6 +1134,14 @@ void resource::BinaryKV3::Read(const Resource &resource,std::shared_ptr<VFilePtr
 	if(magic == MAGIC2)
 	{
 		ReadVersion2(f,ds);
+		return;
+	}
+
+	// The PHYS block of models/props/chainlink_fence/chainlink_fence_gate_001_64_door_hinge.vmdl_c
+	// has a magic value of 0 for some reason
+	if(magic == 0)
+	{
+		m_valid = false;
 		return;
 	}
 

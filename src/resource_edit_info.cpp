@@ -31,7 +31,6 @@ SOFTWARE.
 
 using namespace source2;
 
-#pragma optimize("",off)
 std::string resource::to_string(DXGI_FORMAT format)
 {
 	switch(format)
@@ -851,4 +850,3 @@ void resource::ResourceIntrospectionManifest::ReadEnums(std::shared_ptr<VFilePtr
 		}
 	}
 }
-#pragma optimize("",on)

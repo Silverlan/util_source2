@@ -3,7 +3,6 @@
 
 using namespace source2;
 
-#pragma optimize("",off)
 std::shared_ptr<resource::Scene> resource::World::Load()
 {
 	auto scene = std::make_shared<Scene>();
@@ -86,4 +85,3 @@ void resource::WorldNode::WorldNode::Load(Resource &resource,Scene &scene)
 		}
 	}
 }
-#pragma optimize("",on)

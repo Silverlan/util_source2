@@ -3,7 +3,6 @@
 
 using namespace source2;
 
-#pragma optimize("",off)
 void resource::Scene::Add(SceneNode &node)
 {
 	if(m_sceneNodes.size() == m_sceneNodes.capacity())
@@ -18,4 +17,3 @@ void resource::Scene::Add(Entity &ent)
 }
 const std::vector<std::shared_ptr<resource::SceneNode>> &resource::Scene::GetSceneNodes() const {return m_sceneNodes;}
 const std::vector<std::shared_ptr<resource::Entity>> &resource::Scene::GetEntities() const {return m_entities;}
-#pragma optimize("",on)

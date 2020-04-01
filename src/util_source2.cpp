@@ -32,7 +32,6 @@ SOFTWARE.
 #include <sharedutils/util_string.h>
 #include <mathutil/uvec.h>
 
-#pragma optimize("",off)
 std::string source2::to_string(REDIStruct blockType)
 {
 	switch(blockType)
@@ -279,7 +278,8 @@ std::string source2::to_string(BlockType blockType)
 std::shared_ptr<source2::resource::Resource> source2::load_resource(std::shared_ptr<VFilePtrInternal> f,const std::function<std::shared_ptr<VFilePtrInternal>(const std::string&)> &fAssetLoader)
 {
 	auto resource = std::make_shared<resource::Resource>(fAssetLoader);
-	resource->Read(f);
+	if(resource->Read(f) == false)
+		resource = nullptr;
 	return resource;
 }
 
@@ -291,4 +291,3 @@ void source2::debug_print(resource::Resource &resource,std::stringstream &ss)
 		block->DebugPrint(ss,"\t");
 	}
 }
-#pragma optimize("",on)

@@ -31,3 +31,4 @@ uint32_t resource::Block::GetOffset() const {return m_offset;}
 uint32_t resource::Block::GetSize() const {return m_size;}
 void resource::Block::SetOffset(uint32_t offset) {m_offset = offset;}
 void resource::Block::SetSize(uint32_t size) {m_size = size;}
+bool resource::Block::IsValid() const {return m_valid;}

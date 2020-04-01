@@ -4,7 +4,6 @@
 
 using namespace source2;
 
-#pragma optimize("",off)
 int32_t resource::AnimDecoder::GetSize(AnimDecoderType t)
 {
 	switch (t)
@@ -270,20 +269,4 @@ void resource::Animation::ConstructFromDesc(
 			}
 		}
 	}
-
-	std::stringstream ss;
-	ss<<"\t[\""<<m_name<<"\"] = {\n";
-	for(auto &frame : m_frames)
-	{
-		ss<<"\t\t{\n";
-		for(auto &pair : frame->GetBones())
-		{
-			auto &bone = pair.second;
-			ss<<"\t\t\t[\""<<pair.first<<"\"] = {Vector("<<bone.position.x<<","<<bone.position.y<<","<<bone.position.z<<"),Quaternion("<<bone.rotation.w<<","<<bone.rotation.x<<","<<bone.rotation.y<<","<<bone.rotation.z<<")},\n";
-		}
-		ss<<"\t\t},\n";
-	}
-	ss<<"\t}\n";
-	std::cout<<ss.str()<<std::endl;
 }
-#pragma optimize("",on)

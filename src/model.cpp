@@ -3,7 +3,6 @@
 
 using namespace source2;
 
-#pragma optimize("",off)
 resource::Skin::Skin(const std::string &name,std::vector<std::string> &&materials)
 	: m_name{name},m_materials{std::move(materials)}
 {}
@@ -125,4 +124,3 @@ void resource::Model::GetActiveMeshMaskForGroup(const std::string &groupName)
 {
 
 }
-#pragma optimize("",on)

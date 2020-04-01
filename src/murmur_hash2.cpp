@@ -1,6 +1,5 @@
 #include "murmur_hash2.hpp"
 
-#pragma optimize("",off)
 uint32_t source2::murmur2::hash(const std::string &data,uint32_t seed)
 {
 	if(data.empty())
@@ -62,4 +61,3 @@ uint32_t source2::murmur2::hash(const uint8_t *key,size_t len,uint32_t seed)
 
 	return h;
 }
-#pragma optimize("",on)
