@@ -4,6 +4,7 @@
 
 using namespace source2;
 
+#pragma optimize("",off)
 int32_t resource::AnimDecoder::GetSize(AnimDecoderType t)
 {
 	switch (t)
@@ -236,7 +237,15 @@ void resource::Animation::ConstructFromDesc(
 	// Get animation properties
 	m_name = animDesc.FindValue<std::string>("m_name","");
 	m_fps = animDesc.FindValue<float>("fps",0.f);
-	auto pData = animDesc.FindSubCollection("m_pData"); // TODO?
+
+	source2::resource::IKeyValueCollection *pData = nullptr;
+	auto aData = animDesc.FindArrayValues<IKeyValueCollection*>("m_pData");
+	if(aData.empty())
+		pData = animDesc.FindSubCollection("m_pData");
+	else
+		pData = aData.front();
+	if(pData == nullptr)
+		return;
 	auto frameBlockArray = pData->FindArrayValues<IKeyValueCollection*>("m_frameblockArray");
 
 	auto numFrames = pData->FindValue<int32_t>("m_nFrames",0);
@@ -270,3 +279,4 @@ void resource::Animation::ConstructFromDesc(
 		}
 	}
 }
+#pragma optimize("",on)

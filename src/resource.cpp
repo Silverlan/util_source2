@@ -113,14 +113,15 @@ bool resource::Resource::Read(std::shared_ptr<VFilePtrInternal> f)
 				block = std::make_shared<source2::resource::BinaryKV3>();
 			f->Seek(position);
 		}
+		auto strBlockType = std::string{blockType.data(),blockType.size()};
 		if(block == nullptr)
-			block = ConstructFromType(std::string{blockType.data(),blockType.size()});
+			block = ConstructFromType(strBlockType);
 
 		block->SetOffset(offset);
 		block->SetSize(size);
-		block->Read(*this,f);
-		if(block->IsValid() == false)
-			return false;
+
+		if(strBlockType == "REDI" || strBlockType == "NTRO")
+			block->Read(*this,f);
 
 		m_blocks.push_back(block);
 
@@ -151,8 +152,13 @@ bool resource::Resource::Read(std::shared_ptr<VFilePtrInternal> f)
 			}
 			break;
 		}
-
 		f->Seek(position +sizeof(uint32_t) *2);
+	}
+	for(auto &block : m_blocks)
+	{
+		auto type = block->GetType();
+		if(type != source2::BlockType::REDI && type != source2::BlockType::NTRO)
+			block->Read(*this,f);
 	}
 	return true;
 }
@@ -179,15 +185,15 @@ std::shared_ptr<source2::resource::Block> resource::Resource::ConstructFromType(
 	else if(input == "MDAT")
 		return std::make_shared<BinaryKV3>(BlockType::MDAT);
 	else if(input == "MRPH")
-		return std::make_shared<BinaryKV3>(BlockType::MRPH);
+		return std::make_shared<KeyValuesOrNTRO>(BlockType::MRPH,"MorphSetData_t");
 	else if(input == "ANIM")
-		return std::make_shared<BinaryKV3>(BlockType::ANIM);
+		return std::make_shared<KeyValuesOrNTRO>(BlockType::ANIM,"AnimationResourceData_t");
 	else if(input == "ASEQ")
-		return std::make_shared<BinaryKV3>(BlockType::ASEQ);
+		return std::make_shared<KeyValuesOrNTRO>(BlockType::ASEQ,"SequenceGroupResourceData_t");
 	else if(input == "AGRP")
-		return std::make_shared<BinaryKV3>(BlockType::AGRP);
+		return std::make_shared<KeyValuesOrNTRO>(BlockType::AGRP,"AnimationGroupResourceData_t");
 	else if(input == "PHYS")
-		return std::make_shared<BinaryKV3>(BlockType::PHYS);
+		return std::make_shared<KeyValuesOrNTRO>(BlockType::PHYS,"VPhysXAggregateData_t");
 	throw std::runtime_error{"Support for type " +input +" not yet implemented!"};
 }
 uint32_t resource::Resource::GetVersion() const {return m_version;}

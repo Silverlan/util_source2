@@ -70,14 +70,14 @@ resource::EntityProperty *resource::Entity::FindProperty(const std::string &key)
 
 std::vector<std::string> resource::EntityLump::GetChildEntityNames() const
 {
-	auto *data = dynamic_cast<KVObject*>(GetData().get());
+	auto *data = GetData().get();
 	if(data == nullptr)
 		return {};
 	return data->FindArrayValues<std::string>("m_childLumps");
 }
 std::vector<std::shared_ptr<resource::Entity>> resource::EntityLump::GetEntities() const
 {
-	auto *data = dynamic_cast<KVObject*>(GetData().get());
+	auto *data = GetData().get();
 	if(data == nullptr)
 		return {};
 	std::vector<std::shared_ptr<resource::Entity>> ents {};

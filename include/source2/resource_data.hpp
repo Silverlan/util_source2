@@ -144,6 +144,7 @@ namespace source2::resource
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const=0;
 	};
 
+	using BinaryBlob = std::vector<uint8_t>;
 	struct NTROArray
 		: public NTROValue
 	{
@@ -153,8 +154,11 @@ namespace source2::resource
 		std::vector<std::shared_ptr<NTROValue>> &GetContents();
 		bool IsIndirection() const;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t) const override;
+
+		BinaryBlob &InitBinaryBlob();
 	private:
 		std::vector<std::shared_ptr<NTROValue>> m_contents = {};
+		BinaryBlob m_binaryBlob = {};
 		bool m_bIsIndirection = false;
 	};
 
@@ -182,7 +186,6 @@ namespace source2::resource
 		T value;
 	};
 
-	using BinaryBlob = std::vector<uint8_t>;
 	class IKeyValueCollection
 	{
 	public:
@@ -234,10 +237,31 @@ namespace source2::resource
 	template<typename T>
 		std::optional<T> cast_to_type(NTROValue &v0)
 	{
+		if constexpr(std::is_same_v<T,Mat4>)
+		{
+			auto *vAr = dynamic_cast<NTROArray*>(&v0);
+			if(vAr == nullptr)
+				return {};
+			auto &contents = vAr->GetContents();
+			if(contents.size() != 4)
+				return {};
+			Mat4 result {};
+			for(uint8_t i=0;i<4;++i)
+			{
+				auto &val = contents.at(i);
+				if(val->type != DataType::Vector4D)
+					return {};
+				auto v = cast_to_type<Vector4>(*val);
+				if(v.has_value() == false)
+					return {};
+				result[i] = *v;
+			}
+			return result;
+		}
 		switch(v0.type)
 		{
-		case KVType::Null:
-			return {};
+		//case DataType::Null:
+		//	return {};
 		case DataType::Byte:
 			return cast_to_type<uint8_t,T>(static_cast<TNTROValue<uint8_t>&>(v0).value);
 		case DataType::SByte:
@@ -262,6 +286,15 @@ namespace source2::resource
 		case DataType::String:
 		case DataType::ExternalReference:
 			return cast_to_type<std::string,T>(static_cast<TNTROValue<std::string>&>(v0).value);
+		case DataType::Struct:
+			return cast_to_type<IKeyValueCollection*,T>(static_cast<TNTROValue<std::shared_ptr<NTROStruct>>&>(v0).value.get());
+		default:
+		{
+			auto *vStrct = dynamic_cast<TNTROValue<NTROStruct>*>(&v0);
+			if(vStrct == nullptr)
+				return {};
+			return cast_to_type<IKeyValueCollection,T>(vStrct->value);
+		}
 		}
 		return {};
 	}
@@ -309,8 +342,8 @@ namespace source2::resource
 				return {};
 			if constexpr(std::is_same_v<T,std::shared_ptr<NTROArray>>)
 			{
-				if(val->type != DataType::Struct)
-					return {};
+				//if(val->type != DataType::Struct)
+				//	return {};
 				return std::static_pointer_cast<NTROArray>(static_cast<NTROArray*>(val)->shared_from_this());
 			}
 			else if constexpr(std::is_same_v<T,NTROStruct*>)
@@ -342,8 +375,10 @@ namespace source2::resource
 		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const;
 		const std::shared_ptr<NTROStruct> &GetOutput() const;
+		void SetStructName(const std::string &structName);
 	private:
 		std::shared_ptr<NTROStruct> m_output = nullptr;
+		std::string m_structName;
 		std::shared_ptr<NTROStruct> ReadStructure(
 			const Resource &resource,const ResourceIntrospectionManifest::ResourceDiskStruct &refStruct,int64_t startingOffset,std::shared_ptr<VFilePtrInternal> f
 		);
@@ -418,14 +453,19 @@ namespace source2::resource
 		: public ResourceData
 	{
 	public:
+		KeyValuesOrNTRO();
+		KeyValuesOrNTRO(BlockType type,const std::string &introspectionStructName);
 		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
+		virtual BlockType GetType() const override;
 
 		const std::shared_ptr<resource::IKeyValueCollection> &GetData() const;
 		const std::shared_ptr<resource::ResourceData> &GetBakingData() const;
 	protected:
 		std::shared_ptr<resource::IKeyValueCollection> m_data = nullptr;
 		std::shared_ptr<resource::ResourceData> m_bakingData = nullptr;
+		BlockType m_type = BlockType::None;
+		std::string m_introspectionStructName;
 	};
 
 	class EntityLump;
@@ -747,22 +787,19 @@ namespace source2::resource
 		: public std::enable_shared_from_this<Bone>
 	{
 	public:
-		static std::shared_ptr<Bone> Create(const std::string &name,const std::vector<std::vector<int32_t>> &skinIndicesPerMesh,const Vector3 &position,const Quat &rotation);
+		static std::shared_ptr<Bone> Create(const std::string &name,const Vector3 &position,const Quat &rotation);
 		void AddChild(Bone &bone);
 		void SetParent(Bone &parent);
 		const std::string &GetName() const;
 		Bone *GetParent() const;
 		const std::vector<std::shared_ptr<Bone>> &GetChildren() const;
-		const std::vector<std::vector<int32_t>> &GetSkinIndicesPerMesh() const;
-		const std::vector<int32_t> *GetSkinIndices(uint32_t meshIdx) const;
 		const Vector3 &GetPosition() const;
 		const Quat &GetRotation() const;
 	private:
-		Bone(const std::string &name,const std::vector<std::vector<int32_t>> &skinIndices,const Vector3 &position,const Quat &rotation);
+		Bone(const std::string &name,const Vector3 &position,const Quat &rotation);
 		std::string m_name;
 		std::weak_ptr<Bone> m_parent = {};
 		std::vector<std::shared_ptr<Bone>> m_children = {};
-		std::vector<std::vector<int32_t>> m_skinIndicesPerMesh = {};
 		Vector3 m_position = {};
 		Quat m_rotation = uquat::identity();
 	};
@@ -775,26 +812,33 @@ namespace source2::resource
 		static constexpr int32_t BoneUsedByVertexLod0 = 0x00000400;
 		const std::vector<std::shared_ptr<Bone>> &GetRootBones() const;
 		const std::vector<std::shared_ptr<Bone>> &GetBoneList() const;
+
+		const std::vector<int32_t> &GetRemappingTable() const;
+		const std::vector<int32_t> &GetRemappingTableStarts() const;
 	private:
-		Skeleton(IKeyValueCollection &skeletonData,const std::vector<std::unordered_map<int32_t,std::vector<int32_t>>> &invMapTablePerMesh);
-		void ConstructFromNTRO(IKeyValueCollection &skeletonData,const std::vector<std::unordered_map<int32_t,std::vector<int32_t>>> &invMapTablePerMesh);
+		Skeleton(IKeyValueCollection &skeletonData,const std::vector<int32_t> &remappingTable,const std::vector<int32_t> &remappingTableStarts);
+		void ConstructFromNTRO(IKeyValueCollection &skeletonData);
 		std::vector<std::shared_ptr<Bone>> m_rootBones = {};
 		std::vector<std::shared_ptr<Bone>> m_boneList = {};
+		std::vector<int32_t> m_remappingTable = {};
+		std::vector<int32_t> m_remappingTableStarts = {};
 	};
 
 	class Mesh
 		: public std::enable_shared_from_this<Mesh>
 	{
 	public:
-		static std::shared_ptr<Mesh> Create(ResourceData &data,VBIB &vbib);
+		static std::shared_ptr<Mesh> Create(ResourceData &data,VBIB &vbib,int64_t meshIdx=-1);
 		static std::shared_ptr<Mesh> Create(Resource &resource);
 
 		const std::pair<Vector3,Vector3> &GetBounds() const;
 		std::shared_ptr<VBIB> GetVBIB() const;
 		std::shared_ptr<ResourceData> GetResourceData() const;
+		int64_t GetMeshIndex() const;
 	private:
-		Mesh(ResourceData &data,VBIB &vbib);
+		Mesh(ResourceData &data,VBIB &vbib,int64_t meshIdx=-1);
 		void UpdateBounds();
+		int64_t m_meshIdx = -1;
 		std::shared_ptr<ResourceData> m_resourceData = nullptr;
 		std::shared_ptr<VBIB> m_vbib = nullptr;
 		std::pair<Vector3,Vector3> m_bounds = {};
@@ -880,6 +924,7 @@ namespace source2::resource
 		: public ResourceData
 	{
 	public:
+		static void UncompressBC7(uint32_t RowBytes, DataStream &ds, std::vector<uint8_t> &data, int w, int h, bool hemiOctRB, bool invert);
 		uint16_t GetVersion() const;
 		uint16_t GetWidth() const;
 		uint16_t GetHeight() const;

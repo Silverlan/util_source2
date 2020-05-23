@@ -24,14 +24,14 @@ void resource::World::LoadEntitiesFromLump(EntityLump &entityLump,const std::str
 }
 std::vector<std::string> resource::World::GetEntityLumpNames() const
 {
-	auto *data = dynamic_cast<KVObject*>(GetData().get());
+	auto *data = GetData().get();
 	if(data == nullptr)
 		return {};
 	return data->FindArrayValues<std::string>("m_entityLumps");
 }
 std::vector<std::string> resource::World::GetWorldNodeNames() const
 {
-	auto *data = dynamic_cast<KVObject*>(GetData().get());
+	auto *data = GetData().get();
 	if(data == nullptr)
 		return {};
 	auto worldNodes = data->FindArrayValues<IKeyValueCollection*>("m_worldNodes");

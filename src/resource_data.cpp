@@ -108,7 +108,11 @@ resource::IKeyValueCollection *resource::ResourceData::GetData()
 	if(ntro)
 		return ntro->GetOutput().get();
 	auto *binaryKv3 = dynamic_cast<BinaryKV3*>(this);
-	return binaryKv3 ? binaryKv3->GetData().get() : nullptr;
+	if(binaryKv3)
+		return binaryKv3->GetData().get();
+	auto *keyValuesOrNTRO = dynamic_cast<KeyValuesOrNTRO*>(this);
+	return keyValuesOrNTRO ? keyValuesOrNTRO->GetData().get() : nullptr;
+
 }
 void resource::ResourceData::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) {}
 void resource::ResourceData::DebugPrint(std::stringstream &ss,const std::string &t) const
@@ -133,6 +137,21 @@ resource::NTROArray::NTROArray(DataType type,uint32_t count,bool pointer,bool is
 const std::vector<std::shared_ptr<resource::NTROValue>> &resource::NTROArray::GetContents() const {return const_cast<NTROArray*>(this)->GetContents();}
 std::vector<std::shared_ptr<resource::NTROValue>> &resource::NTROArray::GetContents() {return m_contents;}
 bool resource::NTROArray::IsIndirection() const {return m_bIsIndirection;}
+resource::BinaryBlob &resource::NTROArray::InitBinaryBlob()
+{
+	if(type != DataType::Byte || m_binaryBlob.empty() == false)
+		return m_binaryBlob;
+	auto &contents = GetContents();
+	m_binaryBlob.reserve(contents.size());
+	for(auto &v : contents)
+	{
+		uint8_t value = 0;
+		if(v->type == DataType::Byte)
+			value = static_cast<TNTROValue<unsigned char>&>(*v).value;
+		m_binaryBlob.push_back(value);
+	}
+	return m_binaryBlob;
+}
 void resource::NTROArray::DebugPrint(std::stringstream &ss,const std::string &t) const
 {
 	ss<<t<<"NTROArray = {\n";
@@ -165,8 +184,10 @@ resource::NTROStruct::NTROStruct(const std::vector<std::shared_ptr<NTROValue>> &
 const std::unordered_map<std::string,std::shared_ptr<resource::NTROValue>> &resource::NTROStruct::GetContents() const {return m_contents;}
 resource::BinaryBlob *resource::NTROStruct::FindBinaryBlob(const std::string &key)
 {
-	// TODO: Does NTRO have binary blobs?
-	return nullptr;
+	auto *val = dynamic_cast<NTROArray*>(FindValue(key));
+	if(val == nullptr || val->type != DataType::Byte)
+		return nullptr;
+	return &val->InitBinaryBlob();
 }
 resource::NTROValue *resource::NTROStruct::FindValue(const std::string &key)
 {
@@ -206,7 +227,18 @@ void resource::NTRO::Read(const Resource &resource,std::shared_ptr<VFilePtrInter
 	auto *block = static_cast<const ResourceIntrospectionManifest*>(resource.FindBlock(source2::BlockType::NTRO));
 	if(block == nullptr)
 		return;
-	for(auto &refStruct : block->GetReferencedStructs())
+	auto &structs = block->GetReferencedStructs();
+	if(m_structName.empty() == false)
+	{
+		auto it = std::find_if(structs.begin(),structs.end(),[this](const source2::resource::ResourceIntrospectionManifest::ResourceDiskStruct &strct) {
+			return strct.name == m_structName;
+		});
+		if(it == structs.end())
+			return;
+		m_output = ReadStructure(resource,*it,GetOffset(),f);
+		return;
+	}
+	for(auto &refStruct : structs)
 	{
 		m_output = ReadStructure(resource,refStruct,GetOffset(),f);
 		break;
@@ -424,6 +456,7 @@ void resource::NTRO::DebugPrint(std::stringstream &ss,const std::string &t) cons
 	ss<<t<<"}\n";
 }
 const std::shared_ptr<resource::NTROStruct> &resource::NTRO::GetOutput() const {return m_output;}
+void resource::NTRO::SetStructName(const std::string &structName) {m_structName = structName;}
 
 ///////////////
 
@@ -581,6 +614,12 @@ std::string resource::to_string(Sound::AudioFileType type)
 
 ///////////////
 
+resource::KeyValuesOrNTRO::KeyValuesOrNTRO(BlockType type,const std::string &introspectionStructName)
+	: ResourceData{},m_type{type},m_introspectionStructName{introspectionStructName}
+{}
+resource::KeyValuesOrNTRO::KeyValuesOrNTRO()
+	: KeyValuesOrNTRO{BlockType::DATA,""}
+{}
 void resource::KeyValuesOrNTRO::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
 {
 	if(resource.FindBlock(source2::BlockType::NTRO) == nullptr)
@@ -596,6 +635,7 @@ void resource::KeyValuesOrNTRO::Read(const Resource &resource,std::shared_ptr<VF
 	else
 	{
 		auto ntro = std::make_shared<NTRO>();
+		ntro->SetStructName(m_introspectionStructName);
 		ntro->SetOffset(GetOffset());
 		ntro->SetSize(GetSize());
 		ntro->Read(resource,f);
@@ -608,6 +648,7 @@ void resource::KeyValuesOrNTRO::DebugPrint(std::stringstream &ss,const std::stri
 {
 
 }
+BlockType resource::KeyValuesOrNTRO::GetType() const {return m_type;}
 const std::shared_ptr<resource::IKeyValueCollection> &resource::KeyValuesOrNTRO::GetData() const {return m_data;}
 const std::shared_ptr<resource::ResourceData> &resource::KeyValuesOrNTRO::GetBakingData() const {return m_bakingData;}
 
@@ -756,6 +797,444 @@ VTexFormat resource::Texture::GetFormat() const {return m_format;}
 uint8_t resource::Texture::GetMipMapCount() const {return m_mipMapCount;}
 uint32_t resource::Texture::GetPicmip0Res() const {return m_picmip0Res;}
 const std::unordered_map<VTexExtraData,std::vector<uint8_t>> &resource::Texture::GetExtraData() const {return m_extraData;}
+
+
+#include "source2/span.hpp"
+static std::array<std::array<uint8_t,16>,64> BC7PartitionTable3
+{//Partition table for 3-subset BPTC, with the 4×4 block of values for each partition number
+	std::array<uint8_t,16>{ 0, 0, 1, 1, 0, 0, 1, 1, 0, 2, 2, 1, 2, 2, 2, 2 },
+{ 0, 0, 0, 1, 0, 0, 1, 1, 2, 2, 1, 1, 2, 2, 2, 1 },
+{ 0, 0, 0, 0, 2, 0, 0, 1, 2, 2, 1, 1, 2, 2, 1, 1 },
+{ 0, 2, 2, 2, 0, 0, 2, 2, 0, 0, 1, 1, 0, 1, 1, 1 },
+{ 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 1, 1, 2, 2 },
+{ 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 2, 2, 0, 0, 2, 2 },
+{ 0, 0, 2, 2, 0, 0, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1 },
+{ 0, 0, 1, 1, 0, 0, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1 },
+{ 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2 },
+{ 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2 },
+{ 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2 },
+{ 0, 0, 1, 2, 0, 0, 1, 2, 0, 0, 1, 2, 0, 0, 1, 2 },
+{ 0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2, 0, 1, 1, 2 },
+{ 0, 1, 2, 2, 0, 1, 2, 2, 0, 1, 2, 2, 0, 1, 2, 2 },
+{ 0, 0, 1, 1, 0, 1, 1, 2, 1, 1, 2, 2, 1, 2, 2, 2 },
+{ 0, 0, 1, 1, 2, 0, 0, 1, 2, 2, 0, 0, 2, 2, 2, 0 },
+{ 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 2, 1, 1, 2, 2 },
+{ 0, 1, 1, 1, 0, 0, 1, 1, 2, 0, 0, 1, 2, 2, 0, 0 },
+{ 0, 0, 0, 0, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2 },
+{ 0, 0, 2, 2, 0, 0, 2, 2, 0, 0, 2, 2, 1, 1, 1, 1 },
+{ 0, 1, 1, 1, 0, 1, 1, 1, 0, 2, 2, 2, 0, 2, 2, 2 },
+{ 0, 0, 0, 1, 0, 0, 0, 1, 2, 2, 2, 1, 2, 2, 2, 1 },
+{ 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 2, 2, 0, 1, 2, 2 },
+{ 0, 0, 0, 0, 1, 1, 0, 0, 2, 2, 1, 0, 2, 2, 1, 0 },
+{ 0, 1, 2, 2, 0, 1, 2, 2, 0, 0, 1, 1, 0, 0, 0, 0 },
+{ 0, 0, 1, 2, 0, 0, 1, 2, 1, 1, 2, 2, 2, 2, 2, 2 },
+{ 0, 1, 1, 0, 1, 2, 2, 1, 1, 2, 2, 1, 0, 1, 1, 0 },
+{ 0, 0, 0, 0, 0, 1, 1, 0, 1, 2, 2, 1, 1, 2, 2, 1 },
+{ 0, 0, 2, 2, 1, 1, 0, 2, 1, 1, 0, 2, 0, 0, 2, 2 },
+{ 0, 1, 1, 0, 0, 1, 1, 0, 2, 0, 0, 2, 2, 2, 2, 2 },
+{ 0, 0, 1, 1, 0, 1, 2, 2, 0, 1, 2, 2, 0, 0, 1, 1 },
+{ 0, 0, 0, 0, 2, 0, 0, 0, 2, 2, 1, 1, 2, 2, 2, 1 },
+{ 0, 0, 0, 0, 0, 0, 0, 2, 1, 1, 2, 2, 1, 2, 2, 2 },
+{ 0, 2, 2, 2, 0, 0, 2, 2, 0, 0, 1, 2, 0, 0, 1, 1 },
+{ 0, 0, 1, 1, 0, 0, 1, 2, 0, 0, 2, 2, 0, 2, 2, 2 },
+{ 0, 1, 2, 0, 0, 1, 2, 0, 0, 1, 2, 0, 0, 1, 2, 0 },
+{ 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 0, 0, 0, 0 },
+{ 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0 },
+{ 0, 1, 2, 0, 2, 0, 1, 2, 1, 2, 0, 1, 0, 1, 2, 0 },
+{ 0, 0, 1, 1, 2, 2, 0, 0, 1, 1, 2, 2, 0, 0, 1, 1 },
+{ 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 0, 0, 0, 0, 1, 1 },
+{ 0, 1, 0, 1, 0, 1, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2 },
+{ 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 2, 1, 2, 1, 2, 1 },
+{ 0, 0, 2, 2, 1, 1, 2, 2, 0, 0, 2, 2, 1, 1, 2, 2 },
+{ 0, 0, 2, 2, 0, 0, 1, 1, 0, 0, 2, 2, 0, 0, 1, 1 },
+{ 0, 2, 2, 0, 1, 2, 2, 1, 0, 2, 2, 0, 1, 2, 2, 1 },
+{ 0, 1, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 0, 1, 0, 1 },
+{ 0, 0, 0, 0, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1 },
+{ 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 2, 2, 2, 2 },
+{ 0, 2, 2, 2, 0, 1, 1, 1, 0, 2, 2, 2, 0, 1, 1, 1 },
+{ 0, 0, 0, 2, 1, 1, 1, 2, 0, 0, 0, 2, 1, 1, 1, 2 },
+{ 0, 0, 0, 0, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2 },
+{ 0, 2, 2, 2, 0, 1, 1, 1, 0, 1, 1, 1, 0, 2, 2, 2 },
+{ 0, 0, 0, 2, 1, 1, 1, 2, 1, 1, 1, 2, 0, 0, 0, 2 },
+{ 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 2, 2, 2, 2 },
+{ 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 1, 2, 2, 1, 1, 2 },
+{ 0, 1, 1, 0, 0, 1, 1, 0, 2, 2, 2, 2, 2, 2, 2, 2 },
+{ 0, 0, 2, 2, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 2, 2 },
+{ 0, 0, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 0, 0, 2, 2 },
+{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 1, 2 },
+{ 0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 1 },
+{ 0, 2, 2, 2, 1, 2, 2, 2, 0, 2, 2, 2, 1, 2, 2, 2 },
+{ 0, 1, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 },
+{ 0, 1, 1, 1, 2, 0, 1, 1, 2, 2, 0, 1, 2, 2, 2, 0 },
+};
+
+static std::array<uint8_t,64> BC7AnchorIndices32
+{//BPTC anchor index values for the second subset of three-subset partitioning, by partition number
+	3, 3, 15, 15, 8, 3, 15, 15,
+	8, 8, 6, 6, 6, 5, 3, 3,
+	3, 3, 8, 15, 3, 3, 6, 10,
+	5, 8, 8, 6, 8, 5, 15, 15,
+	8, 15, 3, 5, 6, 10, 8, 15,
+	15, 3, 15, 5, 15, 15, 15, 15,
+	3, 15, 5, 5, 5, 8, 5, 10,
+	5, 10, 8, 13, 15, 12, 3, 3,
+};
+static std::array<uint8_t,64> BC7AnchorIndices33
+{//BPTC anchor index values for the third subset of three-subset partitioning, by partition number
+	15, 8, 8, 3, 15, 15, 3, 8,
+	15, 15, 15, 15, 15, 15, 15, 8,
+	15, 8, 15, 3, 15, 8, 15, 8,
+	3, 15, 6, 10, 15, 15, 10, 8,
+	15, 3, 15, 10, 10, 8, 9, 10,
+	6, 15, 8, 15, 3, 6, 6, 8,
+	15, 3, 15, 15, 15, 15, 15, 15,
+	15, 15, 15, 15, 3, 15, 15, 8,
+};
+static std::array<uint8_t,8> BC7IndLength = { 3, 3, 2, 2, 2, 2, 4, 2 };
+
+static std::array<std::array<uint8_t,16>,64> BPTCPartitionTable2
+{//Partition table for 2-subset BPTC, with the 4×4 block of values for each partition number
+	std::array<uint8_t,16>{ 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1 },
+{ 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1 },
+{ 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1 },
+{ 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1 },
+{ 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1 },
+{ 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1 },
+{ 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1 },
+{ 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 1 },
+{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1 },
+{ 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+{ 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1 },
+{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1 },
+{ 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+{ 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1 },
+{ 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1 },
+{ 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1 },
+{ 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 },
+{ 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0 },
+{ 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0 },
+{ 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 },
+{ 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0 },
+{ 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0 },
+{ 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1 },
+{ 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0 },
+{ 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0 },
+{ 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0 },
+{ 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0 },
+{ 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0 },
+{ 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0 },
+{ 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0 },
+{ 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0 },
+{ 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 },
+{ 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1 },
+{ 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0 },
+{ 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0 },
+{ 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0 },
+{ 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0 },
+{ 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1 },
+{ 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1 },
+{ 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0 },
+{ 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0 },
+{ 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0 },
+{ 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0 },
+{ 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0 },
+{ 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1 },
+{ 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1 },
+{ 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0 },
+{ 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
+{ 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0 },
+{ 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0 },
+{ 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0 },
+{ 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1 },
+{ 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1 },
+{ 0, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0 },
+{ 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0 },
+{ 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1 },
+{ 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1 },
+{ 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1 },
+{ 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1 },
+{ 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1 },
+{ 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0 },
+{ 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0 },
+{ 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1 },
+};
+static std::array<uint8_t,64> BPTCAnchorIndices2
+{// BPTC anchor index values for the second subset of two-subset partitioning, by partition number
+	15, 15, 15, 15, 15, 15, 15, 15,
+	15, 15, 15, 15, 15, 15, 15, 15,
+	15, 2, 8, 2, 2, 8, 8, 15,
+	2, 8, 2, 2, 8, 8, 2, 2,
+	15, 15, 6,  8, 2, 8, 15, 15,
+	2, 8, 2, 2, 2, 15, 15, 6,
+	6, 2, 6, 8, 15, 15, 2, 2,
+	15, 15, 15, 15, 15, 2, 2, 15,
+};
+static std::array<uint8_t,4> BPTCWeights2 = { 0, 21, 43, 64 };
+static std::array<uint8_t,8> BPTCWeights3 = { 0, 9, 19, 27, 47, 46, 55, 64 };
+static std::array<uint8_t,16> BPTCWeights4 = { 0, 4, 9, 13, 17, 21, 26, 30, 34, 38, 43, 47, 51, 55, 60, 64 };
+
+static uint16_t BPTCInterpolateFactor(int weight, int e0, int e1)
+{
+	return (uint16_t)((((64 - weight) * e0) + (weight * e1) + 32) >> 6);
+}
+
+void resource::Texture::UncompressBC7(uint32_t RowBytes, DataStream &ds, std::vector<uint8_t> &data, int w, int h, bool hemiOctRB, bool invert)
+{
+	auto blockCountX = (w + 3) / 4;
+	auto blockCountY = (h + 3) / 4;
+
+	for(auto j=decltype(blockCountY){0u};j<blockCountY;++j)
+	{
+		for(auto i=decltype(blockCountX){0u};i<blockCountX;++i)
+		{
+			auto block0 = ds->Read<uint64_t>();
+			auto block64 = ds->Read<uint64_t>();
+			int m = 0;
+			for (; m < 8; m++)
+			{
+				if ((block0 >> m & 1) == 1)
+				{
+					break;
+				}
+			}
+
+			byte pb = 0;
+			byte rb = 0;
+			byte isb = 0;
+			std::array<std::array<uint8_t,4>,6> endpoints {};
+			byte epbits = 0;
+			byte spbits = 0;
+			uint64_t ib = 0;
+			uint64_t ib2 = 0;
+
+			if (m == 0)
+			{
+				pb = (byte)(block0 >> 1 & 0xF); //4bit
+			}
+			else if (m == 1 || m == 2 || m == 3 || m == 7)
+			{
+				pb = (byte)((block0 >> (m + 1)) & 0x3F); //6bit
+			}
+
+			auto ReadEndpoints = [&](int start, int ns2, int cb, int astart, int ab) {
+				auto GetVal = [&](int p, byte vm) -> uint8_t {
+					byte res = 0;
+					if (p < 64)
+					{
+						res = (byte)(block0 >> p & vm);
+						if (p + cb > 64)
+						{
+							res |= (byte)(block64 << (64 - p) & vm);
+						}
+					}
+					else
+					{
+						res = (byte)(block64 >> (p - 64) & vm);
+					}
+
+					return res;
+				};
+
+				auto mask = (byte)((0x1 << cb) - 1);
+				for (int c = 0; c < 3; c++)
+				{
+					for (int s = 0; s < ns2; s++)
+					{
+						int ofs = start + (cb * ((c * ns2) + s));
+						endpoints[s][c] = GetVal(ofs, mask);
+						if (m == 1)
+						{
+							endpoints[s][c] = (byte)(endpoints[s][c] << 2 | ((spbits >> (s >> 1) & 1) << 1) | (endpoints[s][c] >> 5));
+						}
+						else if (m == 0 || m == 3 || m == 6 || m == 7)
+						{
+							endpoints[s][c] = (byte)(endpoints[s][c] << (8 - cb) | ((epbits >> s & 1) << (7 - cb)) | (endpoints[s][c] >> ((cb * 2) - 7)));
+						}
+						else
+						{
+							endpoints[s][c] = (byte)(endpoints[s][c] << (8 - cb) | (endpoints[s][c] >> ((cb * 2) - 8)));
+						}
+					}
+				}
+
+				if (ab != 0)
+				{
+					mask = (byte)((0x1 << ab) - 1);
+					for (int s = 0; s < ns2; s++)
+					{
+						int ofs = astart + (ab * s);
+						endpoints[s][3] = GetVal(ofs, mask);
+						if (m == 6 || m == 7)
+						{
+							endpoints[s][3] = (byte)((endpoints[s][3] << (8 - ab)) | ((epbits >> s & 1) << (7 - ab)) | (endpoints[s][3] >> ((ab * 2) - 7)));
+						}
+						else
+						{
+							endpoints[s][3] = (byte)((endpoints[s][3] << (8 - ab)) | (endpoints[s][3] >> ((ab * 2) - 8)));
+						}
+					}
+				}
+			};
+
+			if (m == 0)
+			{
+				epbits = (byte)(block64 >> 13 & 0x3F);
+				ReadEndpoints(5, 6, 4, 0, 0);
+				ib = block64 >> 19;
+			}
+			else if (m == 1)
+			{
+				spbits = (byte)((block64 >> 16 & 1) | ((block64 >> 17 & 1) << 1));
+				ReadEndpoints(8, 4, 6, 0, 0);
+				ib = block64 >> 18;
+			}
+			else if (m == 2)
+			{
+				ReadEndpoints(9, 6, 5, 0, 0);
+				ib = block64 >> 35;
+			}
+			else if (m == 3)
+			{
+				epbits = (byte)(block64 >> 30 & 0xF);
+				ReadEndpoints(10, 4, 7, 0, 0);
+				ib = block64 >> 34;
+			}
+			else if (m == 4)
+			{
+				rb = (byte)(block0 >> 5 & 0x3);
+				isb = (byte)(block0 >> 7 & 0x1);
+				ReadEndpoints(8, 2, 5, 38, 6);
+				ib = (block0 >> 50) | (block64 << 14);
+				ib2 = block64 >> 17;
+			}
+			else if (m == 5)
+			{
+				rb = (byte)((block0 >> 6) & 0x3);
+				ReadEndpoints(8, 2, 7, 50, 8);
+				ib = block64 >> 2;
+				ib2 = block64 >> 33;
+			}
+			else if (m == 6)
+			{
+				epbits = (byte)((block0 >> 63) | ((block64 & 1) << 1));
+				ReadEndpoints(7, 2, 7, 49, 7);
+				ib = block64 >> 1;
+			}
+			else if (m == 7)
+			{
+				epbits = (byte)(block64 >> 30 & 0xF);
+				ReadEndpoints(14, 4, 5, 74, 5);
+				ib = block64 >> 34;
+			}
+
+			int ib2l = (m == 4) ? 3 : 2;
+			for (int by = 0; by < 4; by++)
+			{
+				for (int bx = 0; bx < 4; bx++)
+				{
+					int io = (by * 4) + bx;
+					auto pixelIndex = (((j * 4) + by) * RowBytes) + (((i * 4) + bx) * 4);
+
+					byte cweight = 0;
+					byte aweight = 0;
+					byte subset = 0;
+
+					int isAnchor = 0;
+					if (m == 0 || m == 2)
+					{//3 subsets
+						isAnchor = (io == 0 || io == BC7AnchorIndices32[pb] || io == BC7AnchorIndices33[pb]) ? 1 : 0;
+						subset = (byte)(BC7PartitionTable3[pb][io] * 2);
+					}
+					else if (m == 1 || m == 3 || m == 7)
+					{//2 subsets
+						subset = (byte)(BPTCPartitionTable2[pb][io] * 2);
+						isAnchor = (io == 0 || io == BPTCAnchorIndices2[pb]) ? 1 : 0;
+					}
+					else if (m == 4 || m == 5 || m == 6)
+					{//1 subset
+						isAnchor = (io == 0) ? 1 : 0;
+					}
+
+					if (m == 0 || m == 1)
+					{//3 bit
+						cweight = BPTCWeights3[ib & (0x7u >> isAnchor)];
+					}
+					else if (m == 6)
+					{//4 bit
+						cweight = BPTCWeights4[ib & (0xFu >> isAnchor)];
+					}
+					else
+					{//2 bit
+						cweight = BPTCWeights2[ib & (0x3u >> isAnchor)];
+					}
+
+					ib >>= BC7IndLength[m] - isAnchor;
+
+					if (m == 4)
+					{
+						aweight = BPTCWeights3[ib2 & (0x7u >> isAnchor)];
+						ib2 >>= ib2l - isAnchor;
+
+						if (isb == 1)
+						{
+							byte t = cweight;
+							cweight = aweight;
+							aweight = t;
+						}
+					}
+					else if (m == 5)
+					{
+						aweight = BPTCWeights2[ib2 & (0x3u >> isAnchor)];
+						ib2 >>= ib2l - isAnchor;
+					}
+					else if (m > 5)
+					{
+						aweight = cweight;
+					}
+
+					data[pixelIndex] = (byte)BPTCInterpolateFactor(cweight, endpoints[subset][2], endpoints[subset + 1][2]);
+					data[pixelIndex + 1] = (byte)BPTCInterpolateFactor(cweight, endpoints[subset][1], endpoints[subset + 1][1]);
+					data[pixelIndex + 2] = (byte)BPTCInterpolateFactor(cweight, endpoints[subset][0], endpoints[subset + 1][0]);
+
+					if (m < 4)
+					{
+						data[pixelIndex + 3] = std::numeric_limits<uint8_t>::max();
+					}
+					else
+					{
+						data[pixelIndex + 3] = (byte)BPTCInterpolateFactor(aweight, endpoints[subset][3], endpoints[subset + 1][3]);
+
+						if ((m == 4 || m == 5) && rb != 0)
+						{
+							byte t = data[pixelIndex + 3];
+							data[pixelIndex + 3] = data[pixelIndex + 3 - rb];
+							data[pixelIndex + 3 - rb] = t;
+						}
+					}
+
+					if (hemiOctRB)
+					{
+						float nx = ((data[pixelIndex + 2] + data[pixelIndex + 1]) / 255.0f) - 1.003922f;
+						float ny = (data[pixelIndex + 2] - data[pixelIndex + 1]) / 255.0f;
+						float nz = 1 - fabsf(nx) - fabsf(ny);
+
+						float l = (float)sqrtf((nx * nx) + (ny * ny) + (nz * nz));
+						data[pixelIndex + 3] = data[pixelIndex + 0]; //b to alpha
+						data[pixelIndex + 2] = (byte)(((nx / l * 0.5f) + 0.5f) * 255);
+						data[pixelIndex + 1] = (byte)(((ny / l * 0.5f) + 0.5f) * 255);
+						data[pixelIndex + 0] = (byte)(((nz / l * 0.5f) + 0.5f) * 255);
+					}
+
+					if (invert)
+					{
+						data[pixelIndex + 1] = (byte)(~data[pixelIndex + 1]);  // LegacySource1InvertNormals
+					}
+				}
+			}
+		}
+	}
+}
 void resource::Texture::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
 {
 	m_file = f;
@@ -1137,14 +1616,6 @@ void resource::BinaryKV3::Read(const Resource &resource,std::shared_ptr<VFilePtr
 		return;
 	}
 
-	// The PHYS block of models/props/chainlink_fence/chainlink_fence_gate_001_64_door_hinge.vmdl_c
-	// has a magic value of 0 for some reason
-	if(magic == 0)
-	{
-		m_valid = false;
-		return;
-	}
-
 	if (magic != MAGIC)
 		throw std::runtime_error{"Invalid KV3 signature " +std::to_string(magic)};
 
@@ -1284,7 +1755,32 @@ void resource::BinaryKV3::BlockDecompress(std::shared_ptr<VFilePtrInternal> f,Da
 	else
 	{
 		outData->Reserve(f->GetSize() -f->Tell());
+		std::vector<uint8_t> vOutData {};
+		vOutData.reserve(f->GetSize() -f->Tell());
 		auto running = true;
+		uint64_t dataReadOffset = 0ull;
+		uint64_t dataWriteOffset = 0ull;
+		auto fRead = [&vOutData,&dataReadOffset](void *outData,uint64_t size) {
+			memcpy(outData,vOutData.data() +dataReadOffset,size);
+			dataReadOffset += size;
+		};
+		auto fWrite = [&vOutData,&dataWriteOffset,&dataReadOffset](const void *inData,uint64_t size) {
+			if(dataWriteOffset +size >= vOutData.size())
+				vOutData.resize(dataWriteOffset +size);
+			memcpy(vOutData.data() +dataWriteOffset,inData,size);
+			dataWriteOffset += size;
+			dataReadOffset += size;
+		};
+		auto fWriteFront = [&vOutData,&dataWriteOffset,&dataReadOffset](const void *inData,uint64_t size) {
+			if(dataWriteOffset +size >= vOutData.capacity())
+				vOutData.reserve(dataWriteOffset +size);
+			for(uint8_t i=0;i<size;++i)
+				vOutData.insert(vOutData.begin(),0);
+			memcpy(vOutData.data(),inData,size);
+
+			dataWriteOffset += size;
+			dataReadOffset += size;
+		};
 		while (f->Tell() != f->GetSize() && running)
 		{
 			//try
@@ -1301,29 +1797,29 @@ void resource::BinaryKV3::BlockDecompress(std::shared_ptr<VFilePtrInternal> f,Da
 
 						auto lookupSize = (offset < size) ? offset : size; // If the offset is larger or equal to the size, use the size instead.
 
-						// Kill me now
-						auto p = outData->GetOffset();
-						outData->SetOffset(p -offset);
+						auto p = dataReadOffset;
+						dataReadOffset = p -offset;
 						std::vector<uint8_t> data {};
 						data.resize(lookupSize);
-						outData->Read(data.data(),data.size() *sizeof(data.front()));
-						outData->SetOffset(p);
+						fRead(data.data(),data.size() *sizeof(data.front()));
+						dataWriteOffset = p;
+						dataReadOffset = p;
 
 						while (size > 0)
 						{
-							outData->Write(data.data(),(lookupSize < size) ? lookupSize : size);
+							fWrite(data.data(),(lookupSize < size) ? lookupSize : size);
 							size -= lookupSize;
 						}
 					}
 					else
 					{
 						auto data = f->Read<uint8_t>();
-						outData->Write(data);
+						fWrite(&data,sizeof(data));
 					}
 
 					//TODO: is there a better way of making an unsigned 12bit number?
 					// TODO
-					if (outData->GetInternalSize() == (flags[2] << 16) + (flags[1] << 8) + flags[0])
+					if (vOutData.size() == (flags[2] << 16) + (flags[1] << 8) + flags[0])
 					{
 						running = false;
 						break;
@@ -1335,6 +1831,7 @@ void resource::BinaryKV3::BlockDecompress(std::shared_ptr<VFilePtrInternal> f,Da
 			//	break;
 			//}
 		}
+		outData->Write(vOutData.data(),vOutData.size() *sizeof(vOutData.front()));
 	}
 	outData->SetOffset(0);
 }

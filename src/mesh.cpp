@@ -3,9 +3,9 @@
 
 using namespace source2;
 
-std::shared_ptr<resource::Mesh> resource::Mesh::Create(ResourceData &data,VBIB &vbib)
+std::shared_ptr<resource::Mesh> resource::Mesh::Create(ResourceData &data,VBIB &vbib,int64_t meshIdx)
 {
-	return std::shared_ptr<Mesh>{new Mesh{data,vbib}};
+	return std::shared_ptr<Mesh>{new Mesh{data,vbib,meshIdx}};
 }
 
 std::shared_ptr<resource::Mesh> resource::Mesh::Create(Resource &resource)
@@ -17,9 +17,11 @@ std::shared_ptr<resource::Mesh> resource::Mesh::Create(Resource &resource)
 	return Create(*data,*vbib);
 }
 
-resource::Mesh::Mesh(ResourceData &data,VBIB &vbib)
-	: m_resourceData{std::static_pointer_cast<ResourceData>(data.shared_from_this())},m_vbib{std::static_pointer_cast<VBIB>(vbib.shared_from_this())}
+resource::Mesh::Mesh(ResourceData &data,VBIB &vbib,int64_t meshIdx)
+	: m_resourceData{std::static_pointer_cast<ResourceData>(data.shared_from_this())},m_vbib{std::static_pointer_cast<VBIB>(vbib.shared_from_this())},
+	m_meshIdx{meshIdx}
 {}
+int64_t resource::Mesh::GetMeshIndex() const {return m_meshIdx;}
 const std::pair<Vector3,Vector3> &resource::Mesh::GetBounds() const {return m_bounds;}
 std::shared_ptr<resource::VBIB> resource::Mesh::GetVBIB() const {return m_vbib;}
 std::shared_ptr<resource::ResourceData> resource::Mesh::GetResourceData() const {return m_resourceData;}

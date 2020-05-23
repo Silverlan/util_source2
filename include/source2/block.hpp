@@ -42,9 +42,6 @@ namespace source2::resource
 		uint32_t GetSize() const;
 		void SetOffset(uint32_t offset);
 		void SetSize(uint32_t size);
-		bool IsValid() const;
-	protected:
-		bool m_valid = true;
 	private:
 		uint32_t m_offset = 0u;
 		uint32_t m_size = 0u;

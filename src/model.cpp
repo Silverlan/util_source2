@@ -3,6 +3,7 @@
 
 using namespace source2;
 
+#pragma optimize("",off)
 resource::Skin::Skin(const std::string &name,std::vector<std::string> &&materials)
 	: m_name{name},m_materials{std::move(materials)}
 {}
@@ -16,7 +17,7 @@ resource::Model::Model(Resource &resource)
 {}
 std::string resource::Model::GetName() const
 {
-	auto *data = dynamic_cast<KVObject*>(GetData().get());
+	auto *data = GetData().get();
 	if(data == nullptr)
 		return "";
 	auto val = data->FindValue<std::string>("m_name");
@@ -24,7 +25,7 @@ std::string resource::Model::GetName() const
 }
 std::vector<resource::Skin> resource::Model::GetSkins()
 {
-	auto *data = dynamic_cast<KVObject*>(GetData().get());
+	auto *data = GetData().get();
 
 #if 0
 	{
@@ -76,14 +77,15 @@ std::vector<std::shared_ptr<resource::Mesh>> resource::Model::GetEmbeddedMeshes(
 		auto *vbibBlock = vbibBlockIndex.has_value() ? dynamic_cast<source2::resource::VBIB*>(m_resource.GetBlock(*vbibBlockIndex).get()) : nullptr;
 		if(!dataBlock || !vbibBlock)
 			continue;
-		auto mesh = Mesh::Create(*dataBlock,*vbibBlock);
+		auto meshIndex = embeddedMesh->FindValue<int64_t>("mesh_index",-1);
+		auto mesh = Mesh::Create(*dataBlock,*vbibBlock,meshIndex);
 		meshes.push_back(mesh);
 	}
 	return meshes;
 }
 std::vector<std::string> resource::Model::GetReferencedMeshNames()
 {
-	auto *data = dynamic_cast<KVObject*>(GetData().get());
+	auto *data = GetData().get();
 	return data ? data->FindArrayValues<std::string>("m_refMeshes") : std::vector<std::string>{};
 }
 void resource::Model::GetReferencedAnimationGroupNames()
@@ -106,11 +108,12 @@ std::vector<std::shared_ptr<resource::Animation>> resource::Model::GetEmbeddedAn
 	auto *block = dynamic_cast<ResourceData*>(resource.GetBlock(*groupDataBlockIndex).get());
 	if(block == nullptr)
 		return {};
+	block->GetData();
 	auto animGroup = std::make_shared<AnimationGroup>(*block);
 	auto decodeKey = animGroup->GetDecodeKey();
 
-	auto *animationDataBlock = dynamic_cast<BinaryKV3*>(resource.GetBlock(*animDataBlockIndex).get());
-	return Animation::CreateAnimations(*animationDataBlock->GetData(),*decodeKey);
+	auto &animDataBlock = *dynamic_cast<ResourceData*>(resource.GetBlock(*animDataBlockIndex).get());
+	return Animation::CreateAnimations(*animDataBlock.GetData(),*decodeKey);
 }
 void resource::Model::GetMeshGroups()
 {
@@ -124,3 +127,4 @@ void resource::Model::GetActiveMeshMaskForGroup(const std::string &groupName)
 {
 
 }
+#pragma optimize("",on)
