@@ -187,6 +187,7 @@ namespace source2::resource
 	};
 
 	class IKeyValueCollection
+		: public std::enable_shared_from_this<IKeyValueCollection>
 	{
 	public:
 		IKeyValueCollection()=default;
