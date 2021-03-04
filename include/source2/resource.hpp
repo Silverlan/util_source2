@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) 2020 Florian Weischer
+Copyright (c) 2021 Silverlan
 Copyright (c) 2015 Steam Database
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
