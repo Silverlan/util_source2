@@ -42,6 +42,10 @@ class DataStream;
 namespace util {using GUID = std::array<uint8_t,16>;};
 namespace source2::resource
 {
+	class IKeyValueCollection;
+	class NTROStruct;
+	class KVObject;
+	class ResourceData;
 	template<typename T0,typename T1>
 		std::optional<T1> cast_to_type(const T0 &v)
 	{
@@ -76,7 +80,7 @@ namespace source2::resource
 				Vector3 result {};
 				for(uint8_t i=0;i<3;++i)
 				{
-					auto vc = IKeyValueCollection::FindValue<float>(v,std::to_string(i));
+					auto vc = IKeyValueCollection::template FindValue<float>(v,std::to_string(i));
 					if(vc.has_value() == false)
 						continue;
 					result[i] = *vc;
@@ -88,7 +92,7 @@ namespace source2::resource
 				Vector4 result {};
 				for(uint8_t i=0;i<4;++i)
 				{
-					auto vc = IKeyValueCollection::FindValue<float>(v,std::to_string(i));
+					auto vc = IKeyValueCollection::template FindValue<float>(v,std::to_string(i));
 					if(vc.has_value() == false)
 						continue;
 					result[i] = *vc;
@@ -100,7 +104,7 @@ namespace source2::resource
 				Quat result {};
 				for(auto i : {3,0,1,2}) // Source has components in order xyzw, glm in wxyz
 				{
-					auto vc = IKeyValueCollection::FindValue<float>(v,std::to_string(i));
+					auto vc = IKeyValueCollection::template FindValue<float>(v,std::to_string(i));
 					if(vc.has_value() == false)
 						continue;
 					result[i] = *vc;
@@ -124,7 +128,6 @@ namespace source2::resource
 		return {};
 	}
 
-	class IKeyValueCollection;
 	class ResourceData
 		: public Block
 	{
@@ -166,23 +169,8 @@ namespace source2::resource
 		struct TNTROValue
 			: public NTROValue
 	{
-		TNTROValue(DataType type,const T &value,bool pointer=false)
-			: NTROValue{type,pointer},value{value}
-		{}
-		virtual void DebugPrint(std::stringstream &ss,const std::string &t) const override
-		{
-			ss<<t<<"TNTROValue<"<<typeid(T).name()<<"> = {\n";
-			ss<<t<<"\tType = "<<to_string(type)<<"\n";
-			ss<<t<<"\tPointer = "<<pointer<<"\n";
-			if constexpr(std::is_same_v<T,NTROStruct>)
-			{
-				ss<<t<<"\tValue:\n";
-				value.DebugPrint(ss,t +"\t\t");
-			}
-			else
-				ss<<t<<"\tValue = "<<value<<"\n";
-			ss<<t<<"}\n";
-		}
+		TNTROValue(DataType type,const T &value,bool pointer=false);
+		virtual void DebugPrint(std::stringstream &ss,const std::string &t) const override;
 		T value;
 	};
 
@@ -197,108 +185,25 @@ namespace source2::resource
 		BinaryBlob *FindBinaryBlob(const std::string &key);
 
 		template<typename T>
-			T FindValue(const std::string &key,const T &def)
-		{
-			auto optVal = FindValue<T>(key);
-			return optVal.has_value() ? *optVal : def;
-		}
+			T FindValue(const std::string &key,const T &def);
 		template<typename T>
-			std::optional<T> FindValue(const std::string &key) {return FindValue<T>(*this,key);}
+			std::optional<T> FindValue(const std::string &key);
 		template<typename T>
-			std::optional<T> FindValue(const std::string &key) const {return FindValue<T>(*this,key);}
+			std::optional<T> FindValue(const std::string &key) const;
 		template<typename T>
-			std::vector<typename T> FindArrayValues(const std::string &key) {return FindArrayValues<T>(*this,key);}
+			std::vector<typename T> FindArrayValues(const std::string &key);
 
 
 		template<typename T>
-			static std::optional<T> FindValue(IKeyValueCollection &collection,const std::string &key)
-		{
-			if(typeid(collection) == typeid(NTROStruct))
-				return static_cast<NTROStruct&>(collection).FindValue<T>(key);
-			else if(typeid(collection) == typeid(KVObject))
-				return static_cast<KVObject&>(collection).FindValue<T>(key);
-			return {};
-		}
+			static std::optional<T> FindValue(IKeyValueCollection &collection,const std::string &key);
 		template<typename T>
-			static std::optional<T> FindValue(const IKeyValueCollection &collection,const std::string &key)
-		{
-			return FindValue<T>(const_cast<IKeyValueCollection&>(collection),key);
-		}
+			static std::optional<T> FindValue(const IKeyValueCollection &collection,const std::string &key);
 		template<typename T>
-			static std::vector<typename T> FindArrayValues(IKeyValueCollection &collection,const std::string &key)
-		{
-			if(typeid(collection) == typeid(NTROStruct))
-				return static_cast<NTROStruct&>(collection).FindArrayValues<T>(key);
-			else if(typeid(collection) == typeid(KVObject))
-				return static_cast<KVObject&>(collection).FindArrayValues<T>(key);
-			return {};
-		}
+			static std::vector<typename T> FindArrayValues(IKeyValueCollection &collection,const std::string &key);
 	};
 
 	template<typename T>
-		std::optional<T> cast_to_type(NTROValue &v0)
-	{
-		if constexpr(std::is_same_v<T,Mat4>)
-		{
-			auto *vAr = dynamic_cast<NTROArray*>(&v0);
-			if(vAr == nullptr)
-				return {};
-			auto &contents = vAr->GetContents();
-			if(contents.size() != 4)
-				return {};
-			Mat4 result {};
-			for(uint8_t i=0;i<4;++i)
-			{
-				auto &val = contents.at(i);
-				if(val->type != DataType::Vector4D)
-					return {};
-				auto v = cast_to_type<Vector4>(*val);
-				if(v.has_value() == false)
-					return {};
-				result[i] = *v;
-			}
-			return result;
-		}
-		switch(v0.type)
-		{
-		//case DataType::Null:
-		//	return {};
-		case DataType::Byte:
-			return cast_to_type<uint8_t,T>(static_cast<TNTROValue<uint8_t>&>(v0).value);
-		case DataType::SByte:
-			return cast_to_type<int8_t,T>(static_cast<TNTROValue<int8_t>&>(v0).value);
-		case DataType::Boolean:
-			return cast_to_type<bool,T>(static_cast<TNTROValue<bool>&>(v0).value);
-		case DataType::Int16:
-			return cast_to_type<int16_t,T>(static_cast<TNTROValue<int16_t>&>(v0).value);
-		case DataType::UInt16:
-			return cast_to_type<uint16_t,T>(static_cast<TNTROValue<uint16_t>&>(v0).value);
-		case DataType::Int32:
-			return cast_to_type<int32_t,T>(static_cast<TNTROValue<int32_t>&>(v0).value);
-		case DataType::UInt32:
-		case DataType::Enum:
-			return cast_to_type<uint32_t,T>(static_cast<TNTROValue<uint32_t>&>(v0).value);
-		case DataType::Float:
-			return cast_to_type<float,T>(static_cast<TNTROValue<float>&>(v0).value);
-		case DataType::Int64:
-			return cast_to_type<int64_t,T>(static_cast<TNTROValue<int64_t>&>(v0).value);
-		case DataType::UInt64:
-			return cast_to_type<uint64_t,T>(static_cast<TNTROValue<uint64_t>&>(v0).value);
-		case DataType::String:
-		case DataType::ExternalReference:
-			return cast_to_type<std::string,T>(static_cast<TNTROValue<std::string>&>(v0).value);
-		case DataType::Struct:
-			return cast_to_type<IKeyValueCollection*,T>(static_cast<TNTROValue<std::shared_ptr<NTROStruct>>&>(v0).value.get());
-		default:
-		{
-			auto *vStrct = dynamic_cast<TNTROValue<NTROStruct>*>(&v0);
-			if(vStrct == nullptr)
-				return {};
-			return cast_to_type<IKeyValueCollection,T>(vStrct->value);
-		}
-		}
-		return {};
-	}
+		std::optional<T> cast_to_type(NTROValue &v0);
 
 	class NTROStruct
 		: public IKeyValueCollection
@@ -323,7 +228,7 @@ namespace source2::resource
 				return {};
 			auto &contents = array->GetContents();
 			auto n = contents.size();
-			std::vector<typename T> arrayElements {};
+			std::vector<T> arrayElements {};
 			arrayElements.reserve(n);
 			for(auto &val : contents)
 			{
@@ -448,8 +353,6 @@ namespace source2::resource
 	};
 	std::string to_string(Sound::AudioFileType type);
 
-	class KVObject;
-	class ResourceData;
 	class KeyValuesOrNTRO
 		: public ResourceData
 	{
@@ -625,10 +528,10 @@ namespace source2::resource
 			return {};
 		}
 		template<typename T>
-			T GetData(const T &default) const
+			T GetData(const T &def) const
 		{
 			auto val = GetData<T>();
-			return val.has_value() ? *val : default;
+			return val.has_value() ? *val : def;
 		}
 	};
 
@@ -650,11 +553,11 @@ namespace source2::resource
 			return prop->GetData<T>();
 		}
 		template<typename T>
-			T FindProperty(const std::string &key,const T &default)
+			T FindProperty(const std::string &key,const T &def)
 		{
 			auto prop = FindProperty<T>(key);
 			if(prop.has_value() == false)
-				return default;
+				return def;
 			return *prop;
 		}
 	private:
@@ -1096,7 +999,7 @@ namespace source2::resource
 				return {};
 			auto n = array->GetArrayCount();
 
-			std::vector<typename T> arrayElements {};
+			std::vector<T> arrayElements {};
 			arrayElements.reserve(n);
 			for(auto i=decltype(n){0u};i<n;++i)
 			{
@@ -1184,5 +1087,132 @@ namespace source2::resource
 		BlockType m_blockType = BlockType::DATA;
 	};
 };
+
+template<typename T>
+	T source2::resource::IKeyValueCollection::FindValue(const std::string &key,const T &def)
+{
+	auto optVal = FindValue<T>(key);
+	return optVal.has_value() ? *optVal : def;
+}
+template<typename T>
+	std::optional<T> source2::resource::IKeyValueCollection::FindValue(const std::string &key) {return FindValue<T>(*this,key);}
+template<typename T>
+	std::optional<T> source2::resource::IKeyValueCollection::FindValue(const std::string &key) const {return FindValue<T>(*this,key);}
+template<typename T>
+	std::vector<typename T> source2::resource::IKeyValueCollection::FindArrayValues(const std::string &key) {return FindArrayValues<T>(*this,key);}
+
+
+template<typename T>
+	static std::optional<T> source2::resource::IKeyValueCollection::FindValue(IKeyValueCollection &collection,const std::string &key)
+{
+	if(typeid(collection) == typeid(NTROStruct))
+		return static_cast<NTROStruct&>(collection).FindValue<T>(key);
+	else if(typeid(collection) == typeid(KVObject))
+		return static_cast<KVObject&>(collection).FindValue<T>(key);
+	return {};
+}
+template<typename T>
+	static std::optional<T> source2::resource::IKeyValueCollection::FindValue(const IKeyValueCollection &collection,const std::string &key)
+{
+	return FindValue<T>(const_cast<IKeyValueCollection&>(collection),key);
+}
+template<typename T>
+	static std::vector<typename T> source2::resource::IKeyValueCollection::FindArrayValues(IKeyValueCollection &collection,const std::string &key)
+{
+	if(typeid(collection) == typeid(NTROStruct))
+		return static_cast<NTROStruct&>(collection).FindArrayValues<T>(key);
+	else if(typeid(collection) == typeid(KVObject))
+		return static_cast<KVObject&>(collection).FindArrayValues<T>(key);
+	return {};
+}
+
+//////////////
+
+template<typename T>
+	source2::resource::TNTROValue<T>::TNTROValue(DataType type,const T &value,bool pointer)
+	: NTROValue{type,pointer},value{value}
+{}
+template<typename T>
+	void source2::resource::TNTROValue<T>::DebugPrint(std::stringstream &ss,const std::string &t) const
+{
+	ss<<t<<"TNTROValue<"<<typeid(T).name()<<"> = {\n";
+	ss<<t<<"\tType = "<<to_string(type)<<"\n";
+	ss<<t<<"\tPointer = "<<pointer<<"\n";
+	if constexpr(std::is_same_v<T,NTROStruct>)
+	{
+		ss<<t<<"\tValue:\n";
+		value.DebugPrint(ss,t +"\t\t");
+	}
+	else
+		ss<<t<<"\tValue = "<<value<<"\n";
+	ss<<t<<"}\n";
+}
+
+//////////////
+
+template<typename T>
+	std::optional<T> source2::resource::cast_to_type(NTROValue &v0)
+{
+	if constexpr(std::is_same_v<T,Mat4>)
+	{
+		auto *vAr = dynamic_cast<NTROArray*>(&v0);
+		if(vAr == nullptr)
+			return {};
+		auto &contents = vAr->GetContents();
+		if(contents.size() != 4)
+			return {};
+		Mat4 result {};
+		for(uint8_t i=0;i<4;++i)
+		{
+			auto &val = contents.at(i);
+			if(val->type != DataType::Vector4D)
+				return {};
+			auto v = cast_to_type<Vector4>(*val);
+			if(v.has_value() == false)
+				return {};
+			result[i] = *v;
+		}
+		return result;
+	}
+	switch(v0.type)
+	{
+	//case DataType::Null:
+	//	return {};
+	case DataType::Byte:
+		return cast_to_type<uint8_t,T>(static_cast<TNTROValue<uint8_t>&>(v0).value);
+	case DataType::SByte:
+		return cast_to_type<int8_t,T>(static_cast<TNTROValue<int8_t>&>(v0).value);
+	case DataType::Boolean:
+		return cast_to_type<bool,T>(static_cast<TNTROValue<bool>&>(v0).value);
+	case DataType::Int16:
+		return cast_to_type<int16_t,T>(static_cast<TNTROValue<int16_t>&>(v0).value);
+	case DataType::UInt16:
+		return cast_to_type<uint16_t,T>(static_cast<TNTROValue<uint16_t>&>(v0).value);
+	case DataType::Int32:
+		return cast_to_type<int32_t,T>(static_cast<TNTROValue<int32_t>&>(v0).value);
+	case DataType::UInt32:
+	case DataType::Enum:
+		return cast_to_type<uint32_t,T>(static_cast<TNTROValue<uint32_t>&>(v0).value);
+	case DataType::Float:
+		return cast_to_type<float,T>(static_cast<TNTROValue<float>&>(v0).value);
+	case DataType::Int64:
+		return cast_to_type<int64_t,T>(static_cast<TNTROValue<int64_t>&>(v0).value);
+	case DataType::UInt64:
+		return cast_to_type<uint64_t,T>(static_cast<TNTROValue<uint64_t>&>(v0).value);
+	case DataType::String:
+	case DataType::ExternalReference:
+		return cast_to_type<std::string,T>(static_cast<TNTROValue<std::string>&>(v0).value);
+	case DataType::Struct:
+		return cast_to_type<IKeyValueCollection*,T>(static_cast<TNTROValue<std::shared_ptr<NTROStruct>>&>(v0).value.get());
+	default:
+	{
+		auto *vStrct = dynamic_cast<TNTROValue<NTROStruct>*>(&v0);
+		if(vStrct == nullptr)
+			return {};
+		return cast_to_type<IKeyValueCollection,T>(vStrct->value);
+	}
+	}
+	return {};
+}
 
 #endif
