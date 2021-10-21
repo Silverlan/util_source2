@@ -1,0 +1,57 @@
+name: Build
+description: 'Build library'
+inputs:
+  root_dir:
+    description: 'Root directory'
+    required: true
+  should_checkout:
+    description: 'Checkout the core library?'
+    required: true
+    default: '1'
+  dir:
+    description: 'Library directory'
+    required: true
+    default: 'external_libs/util_source2'
+runs:
+  using: "composite"
+  steps:
+    - name: Initialize Env
+      id: init-env
+      uses: Silverlan/common_actions/set_common_env_vars@main
+      
+    - uses: ChristopherHX/conditional@b4a9649204f81002ec9a4ef7d4bf7d6b2ab7fa55
+      name: CMake Build
+      with:
+        if: ${{inputs.should_checkout == '1'}}
+        step: |
+          uses: Silverlan/common_actions/get_submodule@main
+          with:
+            repo: 'Silverlan/util_source2'
+            repo_name: 'util_source2'
+            cmake_var: 'DEPENDENCY_UTIL_SOURCE2_INCLUDE'
+            dir: 'external_libs'
+
+    - name: Download submodule - lz4
+      uses: Silverlan/common_actions/build_submodule@actions
+      with:
+        build_target: 'lz4'
+        repo: 'https://github.com/lz4/lz4.git'
+        repo_name: 'lz4'
+        repo_branch: 'release'
+        cmake_var: 'DEPENDENCY_LZ4_INCLUDE'
+        cmake_var_lib: 'DEPENDENCY_LZ4_LIBRARY'
+        include_dir: 'lib'
+        cmake_script_location: 'third_party_libs/lz4-cmake'
+            
+    - name: Download common external libs
+      uses: Silverlan/common_actions/get_common_external_libs@main
+
+    - uses: Silverlan/common_actions/build_cmake@main
+      name: CMake Build
+      with:
+        build_type: ${{ matrix.config.build_type }}
+        build_generator: ${{ matrix.config.generators }}
+        cmake_var: 'DEPENDENCY_UTIL_SOURCE2_LIBRARY'
+        build_target: util_source2
+        build_dir: '${{ matrix.config.build_dir }}/${{ inputs.dir }}'
+        cmake_script_location: '${{ inputs.dir }}'
