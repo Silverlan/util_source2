@@ -47,7 +47,7 @@ jobs:
           
       - name: Build
         id: build
-        uses: Silverlan/util_source2/github_actions/build@actions
+        uses: Silverlan/util_source2/github_actions/build@master
         with:
           root_dir: "${{ env.GA_ROOT_DIR }}"
           should_checkout: "0"
