@@ -1024,7 +1024,7 @@ template<typename T>
 
 
 template<typename T>
-	static std::optional<T> source2::resource::IKeyValueCollection::FindValue(IKeyValueCollection &collection,const std::string &key)
+	std::optional<T> source2::resource::IKeyValueCollection::FindValue(IKeyValueCollection &collection,const std::string &key)
 {
 	if(typeid(collection) == typeid(NTROStruct))
 		return static_cast<NTROStruct&>(collection).FindValue<T>(key);
@@ -1033,12 +1033,12 @@ template<typename T>
 	return {};
 }
 template<typename T>
-	static std::optional<T> source2::resource::IKeyValueCollection::FindValue(const IKeyValueCollection &collection,const std::string &key)
+	std::optional<T> source2::resource::IKeyValueCollection::FindValue(const IKeyValueCollection &collection,const std::string &key)
 {
 	return FindValue<T>(const_cast<IKeyValueCollection&>(collection),key);
 }
 template<typename T>
-	static std::vector<T> source2::resource::IKeyValueCollection::FindArrayValues(IKeyValueCollection &collection,const std::string &key)
+	std::vector<T> source2::resource::IKeyValueCollection::FindArrayValues(IKeyValueCollection &collection,const std::string &key)
 {
 	if(typeid(collection) == typeid(NTROStruct))
 		return static_cast<NTROStruct&>(collection).FindArrayValues<T>(key);
