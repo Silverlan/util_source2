@@ -112,7 +112,7 @@ namespace source2::resource
 		template<typename T>
 			std::optional<T> FindValue(const std::string &key) const;
 		template<typename T>
-			std::vector<typename T> FindArrayValues(const std::string &key);
+			std::vector<T> FindArrayValues(const std::string &key);
 
 
 		template<typename T>
@@ -120,7 +120,7 @@ namespace source2::resource
 		template<typename T>
 			static std::optional<T> FindValue(const IKeyValueCollection &collection,const std::string &key);
 		template<typename T>
-			static std::vector<typename T> FindArrayValues(IKeyValueCollection &collection,const std::string &key);
+			static std::vector<T> FindArrayValues(IKeyValueCollection &collection,const std::string &key);
 	};
 
 	template<typename T>
@@ -142,7 +142,7 @@ namespace source2::resource
 		void DebugPrint(std::stringstream &ss,const std::string &t="") const;
 
 		template<typename T>
-			std::vector<typename T> FindArrayValues(const std::string &key)
+			std::vector<T> FindArrayValues(const std::string &key)
 		{
 			auto *array = FindArray(key);
 			if(array == nullptr)
@@ -913,7 +913,7 @@ namespace source2::resource
 		const KVObject *FindArray(const std::string &key) const;
 		BinaryBlob *FindBinaryBlob(const std::string &key);
 		template<typename T>
-			std::vector<typename T> FindArrayValues(const std::string &key)
+			std::vector<T> FindArrayValues(const std::string &key)
 		{
 			auto *array = FindArray(key);
 			if(array == nullptr)
@@ -1020,7 +1020,7 @@ template<typename T>
 template<typename T>
 	std::optional<T> source2::resource::IKeyValueCollection::FindValue(const std::string &key) const {return FindValue<T>(*this,key);}
 template<typename T>
-	std::vector<typename T> source2::resource::IKeyValueCollection::FindArrayValues(const std::string &key) {return FindArrayValues<T>(*this,key);}
+	std::vector<T> source2::resource::IKeyValueCollection::FindArrayValues(const std::string &key) {return FindArrayValues<T>(*this,key);}
 
 
 template<typename T>
@@ -1038,7 +1038,7 @@ template<typename T>
 	return FindValue<T>(const_cast<IKeyValueCollection&>(collection),key);
 }
 template<typename T>
-	static std::vector<typename T> source2::resource::IKeyValueCollection::FindArrayValues(IKeyValueCollection &collection,const std::string &key)
+	static std::vector<T> source2::resource::IKeyValueCollection::FindArrayValues(IKeyValueCollection &collection,const std::string &key)
 {
 	if(typeid(collection) == typeid(NTROStruct))
 		return static_cast<NTROStruct&>(collection).FindArrayValues<T>(key);
