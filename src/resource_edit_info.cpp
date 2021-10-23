@@ -598,13 +598,13 @@ void resource::VBIB::VertexBuffer::ReadVertexAttribute(uint32_t offset, const Ve
 	{
 	case DXGI_FORMAT::R32G32B32_FLOAT:
 		outData.resize(3);
-		memcpy(outData.data(),buffer.data() +offset,outData.size() *sizeof(outData.front()));
+		std::memcpy(outData.data(),buffer.data() +offset,outData.size() *sizeof(outData.front()));
 		break;
 
 	case DXGI_FORMAT::R16G16_FLOAT:
 	{
 		std::array<uint16_t,2> shorts {};
-		memcpy(shorts.data(),buffer.data() +offset,shorts.size() *sizeof(shorts.front()));
+		std::memcpy(shorts.data(),buffer.data() +offset,shorts.size() *sizeof(shorts.front()));
 
 		outData.resize(2);
 		outData.at(0) = umath::float16_to_float32_glm(shorts.at(0));
@@ -614,7 +614,7 @@ void resource::VBIB::VertexBuffer::ReadVertexAttribute(uint32_t offset, const Ve
 	case DXGI_FORMAT::R16G16_UNORM:
 	{
 		std::array<uint16_t,2> shorts {};
-		memcpy(shorts.data(),buffer.data() +offset,shorts.size() *sizeof(shorts.front()));
+		std::memcpy(shorts.data(),buffer.data() +offset,shorts.size() *sizeof(shorts.front()));
 
 		outData.resize(2);
 		outData.at(0) = shorts.at(0) /static_cast<float>(std::numeric_limits<uint16_t>::max());
@@ -623,17 +623,17 @@ void resource::VBIB::VertexBuffer::ReadVertexAttribute(uint32_t offset, const Ve
 	}
 	case DXGI_FORMAT::R32G32_FLOAT:
 		outData.resize(2);
-		memcpy(outData.data(),buffer.data() +offset,outData.size() *sizeof(outData.front()));
+		std::memcpy(outData.data(),buffer.data() +offset,outData.size() *sizeof(outData.front()));
 		break;
 	case DXGI_FORMAT::R32_FLOAT:
 		outData.resize(1);
-		memcpy(outData.data(),buffer.data() +offset,outData.size() *sizeof(outData.front()));
+		std::memcpy(outData.data(),buffer.data() +offset,outData.size() *sizeof(outData.front()));
 		break;
 	case DXGI_FORMAT::R8G8B8A8_UINT:
 	case DXGI_FORMAT::R8G8B8A8_UNORM:
 	{
 		std::array<uint8_t,4> bytes {};
-		memcpy(bytes.data(),buffer.data() +offset,bytes.size() *sizeof(bytes.front()));
+		std::memcpy(bytes.data(),buffer.data() +offset,bytes.size() *sizeof(bytes.front()));
 
 		outData.resize(4);
 		for(auto i=decltype(outData.size()){0u};i<outData.size();++i)
