@@ -1206,7 +1206,7 @@ template<typename T0,typename T1>
 			auto result = umat::identity();
 			for(uint8_t i=0;i<4;++i)
 			{
-				auto vec = v.typename FindValue<Vector4>(std::to_string(i));
+				auto vec = v.template FindValue<Vector4>(std::to_string(i));
 				if(vec.has_value() == false)
 					continue;
 				for(uint8_t j=0;j<4;++j)
