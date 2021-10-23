@@ -28,6 +28,7 @@ SOFTWARE.
 #include "source2/mesh_optimizer.hpp"
 #include "source2/impl.hpp"
 #include <fsys/filesystem.h>
+#include <cstring>
 
 using namespace source2;
 
