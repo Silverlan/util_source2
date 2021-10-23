@@ -1,4 +1,4 @@
-name: Build
+name: Build Linux
 on:
   push:
     branches: [ master, actions ]
@@ -7,31 +7,21 @@ on:
 
 jobs:
   build:
-    name: Build
+    name: Build - ${{ matrix.config.os }}
     runs-on: ${{ matrix.config.os }}
     strategy:
       fail-fast: false
       matrix:
         config:
-          - os: windows-latest
-            name: "Windows x64 MSVC"
-            artifact: "Windows-MSVC.tar.xz"
+          - os: ubuntu-latest
+            name: "Ubuntu GCC-11"
+            artifact: "ubuntu_gcc.7z"
             build_type: "RelWithDebInfo"
-            environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
-            cc: "cl"
-            cxx: "cl"
+            cc: "gcc-11"
+            cxx: "g++-11"
             archiver: "7z a"
-            generators: "Visual Studio 16 2019"
+            generators: "Unix Makefiles"
             build_dir: 'build'
-          #- os: ubuntu-latest
-          #  name: "Ubuntu GCC-11"
-          #  artifact: "ubuntu_gcc.7z"
-          #  build_type: "RelWithDebInfo"
-          #  cc: "gcc-11"
-          #  cxx: "g++-11"
-          #  archiver: "7z a"
-          #  generators: "Unix Makefiles"
-          #  build_dir: 'build'
     steps:
       - uses: actions/checkout@v2
         with:

@@ -34,6 +34,10 @@ SOFTWARE.
 
 using namespace source2;
 
+#ifdef __linux__
+using byte = uint8_t;
+#endif
+
 #pragma optimize("",off)
 std::string resource::to_string(KVType type)
 {
@@ -801,7 +805,7 @@ const std::unordered_map<VTexExtraData,std::vector<uint8_t>> &resource::Texture:
 
 #include "source2/span.hpp"
 static std::array<std::array<uint8_t,16>,64> BC7PartitionTable3
-{//Partition table for 3-subset BPTC, with the 4×4 block of values for each partition number
+{//Partition table for 3-subset BPTC, with the 4Ã—4 block of values for each partition number
 	std::array<uint8_t,16>{ 0, 0, 1, 1, 0, 0, 1, 1, 0, 2, 2, 1, 2, 2, 2, 2 },
 { 0, 0, 0, 1, 0, 0, 1, 1, 2, 2, 1, 1, 2, 2, 2, 1 },
 { 0, 0, 0, 0, 2, 0, 0, 1, 2, 2, 1, 1, 2, 2, 1, 1 },
@@ -893,7 +897,7 @@ static std::array<uint8_t,64> BC7AnchorIndices33
 static std::array<uint8_t,8> BC7IndLength = { 3, 3, 2, 2, 2, 2, 4, 2 };
 
 static std::array<std::array<uint8_t,16>,64> BPTCPartitionTable2
-{//Partition table for 2-subset BPTC, with the 4×4 block of values for each partition number
+{//Partition table for 2-subset BPTC, with the 4Ã—4 block of values for each partition number
 	std::array<uint8_t,16>{ 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1 },
 { 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1 },
 { 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1 },

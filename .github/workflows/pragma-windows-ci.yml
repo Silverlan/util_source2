@@ -1,0 +1,48 @@
+name: Build Windows
+on:
+  push:
+    branches: [ master, actions ]
+  pull_request:
+    branches: [ master, actions ]
+
+jobs:
+  build:
+    name: Build - ${{ matrix.config.os }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - os: windows-latest
+            name: "Windows x64 MSVC"
+            artifact: "Windows-MSVC.tar.xz"
+            build_type: "RelWithDebInfo"
+            environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
+            cc: "cl"
+            cxx: "cl"
+            archiver: "7z a"
+            generators: "Visual Studio 16 2019"
+            build_dir: 'build'
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Setup
+        id: setup
+        uses: Silverlan/common_actions/setup@main
+          
+      - name: Download binaries
+        uses: Silverlan/common_actions/download_build_binaries@main
+        continue-on-error: true
+          
+      - name: Build
+        id: build
+        uses: Silverlan/util_source2/github_actions/build@master
+        with:
+          root_dir: "${{ env.GA_ROOT_DIR }}"
+          should_checkout: "0"
+          dir: '.'
+          
+      - name: Upload binaries
+        uses: Silverlan/common_actions/upload_build_binaries@main

@@ -47,86 +47,7 @@ namespace source2::resource
 	class KVObject;
 	class ResourceData;
 	template<typename T0,typename T1>
-		std::optional<T1> cast_to_type(const T0 &v)
-	{
-		if constexpr(std::is_same_v<T0,T1>)
-			return v;
-		if constexpr(std::is_arithmetic_v<T0>)
-		{
-			if constexpr(std::is_arithmetic_v<T1>)
-				return static_cast<T1>(v);
-			else if constexpr(std::is_same_v<T1,std::string>)
-				return std::to_string(v);
-			else
-				return {};
-		}
-		else if constexpr(std::is_same_v<T0,std::string>)
-		{
-			if constexpr(std::is_integral_v<T1>)
-				return ustring::to_int(v);
-			else if constexpr(std::is_arithmetic_v<T1>)
-				return ustring::to_float(v);
-			else if constexpr(std::is_same_v<T1,Vector3>)
-				return uvec::create(v);
-			else if constexpr(std::is_same_v<T1,EulerAngles>)
-				return EulerAngles{v};
-			else
-				return {};
-		}
-		else if constexpr(std::is_same_v<T0,IKeyValueCollection>)
-		{
-			if constexpr(std::is_same_v<T1,Vector3>)
-			{
-				Vector3 result {};
-				for(uint8_t i=0;i<3;++i)
-				{
-					auto vc = IKeyValueCollection::template FindValue<float>(v,std::to_string(i));
-					if(vc.has_value() == false)
-						continue;
-					result[i] = *vc;
-				}
-				return result;
-			}
-			if constexpr(std::is_same_v<T1,Vector4>)
-			{
-				Vector4 result {};
-				for(uint8_t i=0;i<4;++i)
-				{
-					auto vc = IKeyValueCollection::template FindValue<float>(v,std::to_string(i));
-					if(vc.has_value() == false)
-						continue;
-					result[i] = *vc;
-				}
-				return result;
-			}
-			else if constexpr(std::is_same_v<T1,Quat>)
-			{
-				Quat result {};
-				for(auto i : {3,0,1,2}) // Source has components in order xyzw, glm in wxyz
-				{
-					auto vc = IKeyValueCollection::template FindValue<float>(v,std::to_string(i));
-					if(vc.has_value() == false)
-						continue;
-					result[i] = *vc;
-				}
-				return result;
-			}
-			else if constexpr(std::is_same_v<T1,Mat4>)
-			{
-				auto result = umat::identity();
-				for(uint8_t i=0;i<4;++i)
-				{
-					auto vec = v.FindValue<Vector4>(std::to_string(i));
-					if(vec.has_value() == false)
-						continue;
-					for(uint8_t j=0;j<4;++j)
-						result[i][j] = (*vec)[j];
-				}
-				return result;
-			}
-		}
-		return {};
-	}
+		std::optional<T1> cast_to_type(const T0 &v);
 
 	class ResourceData
 		: public Block
@@ -191,7 +112,7 @@ namespace source2::resource
 		template<typename T>
 			std::optional<T> FindValue(const std::string &key) const;
 		template<typename T>
-			std::vector<typename T> FindArrayValues(const std::string &key);
+			std::vector<T> FindArrayValues(const std::string &key);
 
 
 		template<typename T>
@@ -199,7 +120,7 @@ namespace source2::resource
 		template<typename T>
 			static std::optional<T> FindValue(const IKeyValueCollection &collection,const std::string &key);
 		template<typename T>
-			static std::vector<typename T> FindArrayValues(IKeyValueCollection &collection,const std::string &key);
+			static std::vector<T> FindArrayValues(IKeyValueCollection &collection,const std::string &key);
 	};
 
 	template<typename T>
@@ -221,7 +142,7 @@ namespace source2::resource
 		void DebugPrint(std::stringstream &ss,const std::string &t="") const;
 
 		template<typename T>
-			std::vector<typename T> FindArrayValues(const std::string &key)
+			std::vector<T> FindArrayValues(const std::string &key)
 		{
 			auto *array = FindArray(key);
 			if(array == nullptr)
@@ -992,7 +913,7 @@ namespace source2::resource
 		const KVObject *FindArray(const std::string &key) const;
 		BinaryBlob *FindBinaryBlob(const std::string &key);
 		template<typename T>
-			std::vector<typename T> FindArrayValues(const std::string &key)
+			std::vector<T> FindArrayValues(const std::string &key)
 		{
 			auto *array = FindArray(key);
 			if(array == nullptr)
@@ -1099,11 +1020,11 @@ template<typename T>
 template<typename T>
 	std::optional<T> source2::resource::IKeyValueCollection::FindValue(const std::string &key) const {return FindValue<T>(*this,key);}
 template<typename T>
-	std::vector<typename T> source2::resource::IKeyValueCollection::FindArrayValues(const std::string &key) {return FindArrayValues<T>(*this,key);}
+	std::vector<T> source2::resource::IKeyValueCollection::FindArrayValues(const std::string &key) {return FindArrayValues<T>(*this,key);}
 
 
 template<typename T>
-	static std::optional<T> source2::resource::IKeyValueCollection::FindValue(IKeyValueCollection &collection,const std::string &key)
+	std::optional<T> source2::resource::IKeyValueCollection::FindValue(IKeyValueCollection &collection,const std::string &key)
 {
 	if(typeid(collection) == typeid(NTROStruct))
 		return static_cast<NTROStruct&>(collection).FindValue<T>(key);
@@ -1112,12 +1033,12 @@ template<typename T>
 	return {};
 }
 template<typename T>
-	static std::optional<T> source2::resource::IKeyValueCollection::FindValue(const IKeyValueCollection &collection,const std::string &key)
+	std::optional<T> source2::resource::IKeyValueCollection::FindValue(const IKeyValueCollection &collection,const std::string &key)
 {
 	return FindValue<T>(const_cast<IKeyValueCollection&>(collection),key);
 }
 template<typename T>
-	static std::vector<typename T> source2::resource::IKeyValueCollection::FindArrayValues(IKeyValueCollection &collection,const std::string &key)
+	std::vector<T> source2::resource::IKeyValueCollection::FindArrayValues(IKeyValueCollection &collection,const std::string &key)
 {
 	if(typeid(collection) == typeid(NTROStruct))
 		return static_cast<NTROStruct&>(collection).FindArrayValues<T>(key);
@@ -1211,6 +1132,88 @@ template<typename T>
 			return {};
 		return cast_to_type<IKeyValueCollection,T>(vStrct->value);
 	}
+	}
+	return {};
+}
+
+template<typename T0,typename T1>
+	std::optional<T1> source2::resource::cast_to_type(const T0 &v)
+{
+	if constexpr(std::is_same_v<T0,T1>)
+		return v;
+	if constexpr(std::is_arithmetic_v<T0>)
+	{
+		if constexpr(std::is_arithmetic_v<T1>)
+			return static_cast<T1>(v);
+		else if constexpr(std::is_same_v<T1,std::string>)
+			return std::to_string(v);
+		else
+			return {};
+	}
+	else if constexpr(std::is_same_v<T0,std::string>)
+	{
+		if constexpr(std::is_integral_v<T1>)
+			return ustring::to_int(v);
+		else if constexpr(std::is_arithmetic_v<T1>)
+			return ustring::to_float(v);
+		else if constexpr(std::is_same_v<T1,Vector3>)
+			return uvec::create(v);
+		else if constexpr(std::is_same_v<T1,EulerAngles>)
+			return EulerAngles{v};
+		else
+			return {};
+	}
+	else if constexpr(std::is_same_v<T0,IKeyValueCollection>)
+	{
+		if constexpr(std::is_same_v<T1,Vector3>)
+		{
+			Vector3 result {};
+			for(uint8_t i=0;i<3;++i)
+			{
+				auto vc = IKeyValueCollection::template FindValue<float>(v,std::to_string(i));
+				if(vc.has_value() == false)
+					continue;
+				result[i] = *vc;
+			}
+			return result;
+		}
+		if constexpr(std::is_same_v<T1,Vector4>)
+		{
+			Vector4 result {};
+			for(uint8_t i=0;i<4;++i)
+			{
+				auto vc = IKeyValueCollection::template FindValue<float>(v,std::to_string(i));
+				if(vc.has_value() == false)
+					continue;
+				result[i] = *vc;
+			}
+			return result;
+		}
+		else if constexpr(std::is_same_v<T1,Quat>)
+		{
+			Quat result {};
+			for(auto i : {3,0,1,2}) // Source has components in order xyzw, glm in wxyz
+			{
+				auto vc = IKeyValueCollection::template FindValue<float>(v,std::to_string(i));
+				if(vc.has_value() == false)
+					continue;
+				result[i] = *vc;
+			}
+			return result;
+		}
+		else if constexpr(std::is_same_v<T1,Mat4>)
+		{
+			auto result = umat::identity();
+			for(uint8_t i=0;i<4;++i)
+			{
+				auto vec = v.template FindValue<Vector4>(std::to_string(i));
+				if(vec.has_value() == false)
+					continue;
+				for(uint8_t j=0;j<4;++j)
+					result[i][j] = (*vec)[j];
+			}
+			return result;
+		}
 	}
 	return {};
 }
