@@ -31,13 +31,13 @@ runs:
             cmake_var: 'DEPENDENCY_UTIL_SOURCE2_INCLUDE'
             dir: 'external_libs'
             
-    - name: Copy lz4-cmake script
-      shell: bash
-      run: |
-        echo "Copying lz4-cmake from ./third_party_libs/lz4-cmake to ${{ inputs.root_dir }}/third_party_libs/lz4-cmake..."
-        cp -n ./third_party_libs/lz4-cmake ${{ inputs.root_dir }}/third_party_libs/lz4-cmake
-        # mkdir -p ./third_party_libs/lz4-cmake
-        # cp -n ${{ inputs.root_dir }}/third_party_libs/lz4-cmake/CMakeLists.txt ./third_party_libs/lz4-cmake/CMakeLists.txt
+    #- name: Copy lz4-cmake script
+    #  shell: bash
+    #  run: |
+    #    echo "Copying lz4-cmake from ./third_party_libs/lz4-cmake to ${{ inputs.root_dir }}/third_party_libs/lz4-cmake..."
+    #    cp -n ./third_party_libs/lz4-cmake ${{ inputs.root_dir }}/third_party_libs/lz4-cmake
+    #    # mkdir -p ./third_party_libs/lz4-cmake
+    #    # cp -n ${{ inputs.root_dir }}/third_party_libs/lz4-cmake/CMakeLists.txt ./third_party_libs/lz4-cmake/CMakeLists.txt
 
     - name: Download submodule - lz4
       uses: Silverlan/common_actions/build_submodule@main
@@ -49,7 +49,7 @@ runs:
         cmake_var: 'DEPENDENCY_LZ4_INCLUDE'
         cmake_var_lib: 'DEPENDENCY_LZ4_LIBRARY'
         include_dir: 'lib'
-        cmake_script_location: 'third_party_libs/lz4-cmake'
+        cmake_script_location: '${{ inputs.root_dir }}/third_party_libs/lz4-cmake'
             
     - name: Download common external libs
       uses: Silverlan/common_actions/get_common_external_libs@main
