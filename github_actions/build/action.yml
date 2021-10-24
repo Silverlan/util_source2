@@ -49,7 +49,7 @@ runs:
         cmake_var: 'DEPENDENCY_LZ4_INCLUDE'
         cmake_var_lib: 'DEPENDENCY_LZ4_LIBRARY'
         include_dir: 'lib'
-        cmake_script_location: '${{ inputs.root_dir }}/third_party_libs/lz4-cmake'
+        cmake_script_location: '${{ inputs.root_dir }}/external_libs/util_source2/third_party_libs/lz4-cmake'
             
     - name: Download common external libs
       uses: Silverlan/common_actions/get_common_external_libs@main
@@ -63,3 +63,4 @@ runs:
         build_target: util_source2
         build_dir: '${{ matrix.config.build_dir }}/${{ inputs.dir }}'
         cmake_script_location: '${{ inputs.dir }}'
+        static_library: '1'
