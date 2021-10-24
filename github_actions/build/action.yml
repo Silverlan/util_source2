@@ -31,23 +31,21 @@ runs:
             cmake_var: 'DEPENDENCY_UTIL_SOURCE2_INCLUDE'
             dir: 'external_libs'
             
-    - name: Copy lz4-cmake script
+    - id: print-pwd
       shell: bash
       run: |
-        mkdir -p ./third_party_libs/lz4-cmake
-        cp -n ${{ inputs.root_dir }}/third_party_libs/lz4-cmake/CMakeLists.txt ./third_party_libs/lz4-cmake/CMakeLists.txt
-
+        echo "PWD: $PWD"
+         
     - name: Download submodule - lz4
       uses: Silverlan/common_actions/build_submodule@main
       with:
         build_target: 'lz4'
-        repo: 'https://github.com/lz4/lz4.git'
+        repo: 'https://github.com/Silverlan/lz4.git'
         repo_name: 'lz4'
         repo_branch: 'release'
         cmake_var: 'DEPENDENCY_LZ4_INCLUDE'
         cmake_var_lib: 'DEPENDENCY_LZ4_LIBRARY'
         include_dir: 'lib'
-        cmake_script_location: 'third_party_libs/lz4-cmake'
             
     - name: Download common external libs
       uses: Silverlan/common_actions/get_common_external_libs@main
@@ -61,3 +59,4 @@ runs:
         build_target: util_source2
         build_dir: '${{ matrix.config.build_dir }}/${{ inputs.dir }}'
         cmake_script_location: '${{ inputs.dir }}'
+        static_library: '1'
