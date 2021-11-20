@@ -36,7 +36,7 @@ namespace source2::resource
 	{
 	public:
 		virtual BlockType GetType() const=0;
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)=0;
+		virtual void Read(const Resource &resource,ufile::IFile &f)=0;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const=0;
 		uint32_t GetOffset() const;
 		uint32_t GetSize() const;

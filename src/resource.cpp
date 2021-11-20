@@ -31,21 +31,25 @@ SOFTWARE.
 #include <array>
 #include <sharedutils/util_string.h>
 #include <fsys/filesystem.h>
+#include <fsys/ifile.hpp>
 
 using namespace source2;
 
 #pragma optimize("",off)
-resource::Resource::Resource(const std::function<std::shared_ptr<VFilePtrInternal>(const std::string&)> &assetFileLoader)
+resource::Resource::Resource(const std::function<std::unique_ptr<ufile::IFile>(const std::string&)> &assetFileLoader)
 	: m_assetFileLoader{assetFileLoader}
 {
 	if(m_assetFileLoader == nullptr)
 	{
-		m_assetFileLoader = [](const std::string &path) -> VFilePtr {
-			return FileManager::OpenFile(path.c_str(),"rb");
+		m_assetFileLoader = [](const std::string &path) -> std::unique_ptr<ufile::IFile> {
+			auto f = FileManager::OpenFile(path.c_str(),"rb");
+			if(!f)
+				return nullptr;
+			return std::make_unique<fsys::File>(f);
 		};
 	}
 }
-std::shared_ptr<VFilePtrInternal> resource::Resource::OpenAssetFile(const std::string &path) const
+std::unique_ptr<ufile::IFile> resource::Resource::OpenAssetFile(const std::string &path) const
 {
 	return m_assetFileLoader(path);
 }
@@ -54,7 +58,7 @@ std::shared_ptr<resource::Resource> resource::Resource::LoadResource(const std::
 	auto f = OpenAssetFile(path);
 	if(f == nullptr)
 		return nullptr;
-	return load_resource(f,m_assetFileLoader);
+	return load_resource(*f,m_assetFileLoader);
 }
 resource::Block *resource::Resource::FindBlock(BlockType type)
 {
@@ -80,38 +84,38 @@ bool resource::Resource::IsHandledResourceType(ResourceType type)
 	}
 	return false;
 }
-bool resource::Resource::Read(std::shared_ptr<VFilePtrInternal> f)
+bool resource::Resource::Read(ufile::IFile &f)
 {
-	auto fileSize = f->Read<uint32_t>();
+	auto fileSize = f.Read<uint32_t>();
 	if (fileSize == 0x55AA1234)
 		throw std::runtime_error{"Use ValvePak library to parse VPK files."};
 	if (fileSize == 0x32736376) // "vcs2"
 		throw std::runtime_error{"Use CompiledShader() class to parse compiled shader files."};
 
-	auto headerVersion = f->Read<uint16_t>();
+	auto headerVersion = f.Read<uint16_t>();
 	constexpr uint32_t knownHeaderVersion = 12u;
 	if (headerVersion != knownHeaderVersion)
 		throw std::runtime_error{"Bad header version. (" +std::to_string(headerVersion) +" != expected " +std::to_string(knownHeaderVersion) +")"};
 
-	m_version = f->Read<uint16_t>();
-	auto startOffset = f->Tell();
-	auto blockOffset = f->Read<uint32_t>();
-	auto blockCount = f->Read<uint32_t>();
+	m_version = f.Read<uint16_t>();
+	auto startOffset = f.Tell();
+	auto blockOffset = f.Read<uint32_t>();
+	auto blockCount = f.Read<uint32_t>();
 	m_blocks.reserve(blockCount);
 	for(auto i=decltype(blockCount){0u};i<blockCount;++i)
 	{
-		auto blockType = f->Read<std::array<char,4>>(); // TODO: UTF8?
-		auto position = f->Tell();
-		auto offset = position +f->Read<uint32_t>();
-		auto size = f->Read<uint32_t>();
+		auto blockType = f.Read<std::array<char,4>>(); // TODO: UTF8?
+		auto position = f.Tell();
+		auto offset = position +f.Read<uint32_t>();
+		auto size = f.Read<uint32_t>();
 		std::shared_ptr<source2::resource::Block> block = nullptr;
 		if(size >= 4 && ustring::compare(blockType.data(),"DATA",true,blockType.size()) && !IsHandledResourceType(m_resourceType))
 		{
-			f->Seek(offset);
-			auto magic = f->Read<uint32_t>();
+			f.Seek(offset);
+			auto magic = f.Read<uint32_t>();
 			if (magic == source2::resource::BinaryKV3::MAGIC || magic == source2::resource::BinaryKV3::MAGIC2)
 				block = std::make_shared<source2::resource::BinaryKV3>();
-			f->Seek(position);
+			f.Seek(position);
 		}
 		auto strBlockType = std::string{blockType.data(),blockType.size()};
 		if(block == nullptr)
@@ -152,7 +156,7 @@ bool resource::Resource::Read(std::shared_ptr<VFilePtrInternal> f)
 			}
 			break;
 		}
-		f->Seek(position +sizeof(uint32_t) *2);
+		f.Seek(position +sizeof(uint32_t) *2);
 	}
 	for(auto &block : m_blocks)
 	{

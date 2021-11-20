@@ -26,6 +26,7 @@ SOFTWARE.
 #include "source2/redi/redi.hpp"
 #include "source2/impl.hpp"
 #include <sharedutils/util_string.h>
+#include <sharedutils/util_ifile.hpp>
 #include <fsys/filesystem.h>
 
 using namespace source2;
@@ -40,9 +41,9 @@ void resource::InputDependencies::InputDependency::DebugPrint(std::stringstream 
 	ss<<t<<"Flags: "<<flags<<"\n";
 }
 
-void resource::InputDependencies::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
+void resource::InputDependencies::Read(const Resource &resource,ufile::IFile &f)
 {
-	f->Seek(GetOffset());
+	f.Seek(GetOffset());
 	auto size = GetSize();
 	m_inputDependencies.reserve(size);
 	for(auto i=decltype(size){0u};i<size;++i)
@@ -51,8 +52,8 @@ void resource::InputDependencies::Read(const Resource &resource,std::shared_ptr<
 		auto &dependency = m_inputDependencies.back();
 		dependency.contentRelativeFilename = read_offset_string(f); // TODO: UTF8
 		dependency.contentSearchPath = read_offset_string(f); // TODO: UTF8
-		dependency.fileCRC = f->Read<uint32_t>();
-		dependency.flags = f->Read<uint32_t>();
+		dependency.fileCRC = f.Read<uint32_t>();
+		dependency.flags = f.Read<uint32_t>();
 	}
 }
 
@@ -78,9 +79,9 @@ void resource::ArgumentDependencies::ArgumentDependency::DebugPrint(std::strings
 	ss<<t<<"Fingerprint default: "<<fingerprintDefault<<"\n";
 }
 
-void resource::ArgumentDependencies::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
+void resource::ArgumentDependencies::Read(const Resource &resource,ufile::IFile &f)
 {
-	f->Seek(GetOffset());
+	f.Seek(GetOffset());
 	auto size = GetSize();
 	m_argumentDependencies.reserve(size);
 	for(auto i=decltype(size){0u};i<size;++i)
@@ -89,8 +90,8 @@ void resource::ArgumentDependencies::Read(const Resource &resource,std::shared_p
 		auto &dependency = m_argumentDependencies.back();
 		dependency.parameterName = read_offset_string(f); // TODO: UTF8
 		dependency.parameterType = read_offset_string(f); // TODO: UTF8
-		dependency.fingerprint = f->Read<uint32_t>();
-		dependency.fingerprintDefault = f->Read<uint32_t>();
+		dependency.fingerprint = f.Read<uint32_t>();
+		dependency.fingerprintDefault = f.Read<uint32_t>();
 	}
 }
 
@@ -211,9 +212,9 @@ void resource::SpecialDependencies::SpecialDependency::DebugPrint(std::stringstr
 	ss<<t<<"Fingerprint: "<<fingerprint<<"\n";
 	ss<<t<<"User data: "<<userData<<"\n";
 }
-void resource::SpecialDependencies::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
+void resource::SpecialDependencies::Read(const Resource &resource,ufile::IFile &f)
 {
-	f->Seek(GetOffset());
+	f.Seek(GetOffset());
 	auto size = GetSize();
 	m_specialDependencies.reserve(size);
 	for(auto i=decltype(size){0u};i<size;++i)
@@ -222,8 +223,8 @@ void resource::SpecialDependencies::Read(const Resource &resource,std::shared_pt
 		auto &dependency = m_specialDependencies.back();
 		dependency.string = read_offset_string(f); // TODO: UTF8
 		dependency.compilerIdentifier = read_offset_string(f); // TODO: UTF8
-		dependency.fingerprint = f->Read<uint32_t>();
-		dependency.userData = f->Read<uint32_t>();
+		dependency.fingerprint = f.Read<uint32_t>();
+		dependency.userData = f.Read<uint32_t>();
 	}
 }
 void resource::SpecialDependencies::DebugPrint(std::stringstream &ss,const std::string &t) const
@@ -241,9 +242,9 @@ void resource::SpecialDependencies::DebugPrint(std::stringstream &ss,const std::
 }
 const std::vector<resource::SpecialDependencies::SpecialDependency> &resource::SpecialDependencies::GetSpecialDependencies() const {return m_specialDependencies;}
 
-void resource::CustomDependencies::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
+void resource::CustomDependencies::Read(const Resource &resource,ufile::IFile &f)
 {
-	f->Seek(GetOffset());
+	f.Seek(GetOffset());
 	if(GetSize() > 0)
 		throw new std::runtime_error{"CustomDependencies block is not handled."};
 }
@@ -254,9 +255,9 @@ void resource::CustomDependencies::DebugPrint(std::stringstream &ss,const std::s
 	ss<<t<<"}\n";
 }
 
-void resource::AdditionalRelatedFiles::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
+void resource::AdditionalRelatedFiles::Read(const Resource &resource,ufile::IFile &f)
 {
-	f->Seek(GetOffset());
+	f.Seek(GetOffset());
 	auto size = GetSize();
 	m_additionalRelatedFiles.reserve(size);
 	for(auto i=decltype(size){0u};i<size;++i)
@@ -288,19 +289,19 @@ void resource::AdditionalRelatedFiles::DebugPrint(std::stringstream &ss,const st
 	ss<<t<<"}\n";
 }
 
-void resource::ChildResourceList::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
+void resource::ChildResourceList::Read(const Resource &resource,ufile::IFile &f)
 {
-	f->Seek(GetOffset());
+	f.Seek(GetOffset());
 	auto size = GetSize();
 	m_references.reserve(size);
 	for(auto i=decltype(size){0u};i<size;++i)
 	{
 		m_references.push_back({});
 		auto &dependency = m_references.back();
-		dependency.id = f->Read<uint64_t>();
+		dependency.id = f.Read<uint64_t>();
 		dependency.resourceName = read_offset_string(f); // TODO: UTF8
 
-		f->Seek(f->Tell() +4); // ????
+		f.Seek(f.Tell() +4); // ????
 	}
 }
 
@@ -324,9 +325,9 @@ void resource::ChildResourceList::DebugPrint(std::stringstream &ss,const std::st
 	ss<<t<<"}\n";
 }
 
-void resource::ExtraIntData::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
+void resource::ExtraIntData::Read(const Resource &resource,ufile::IFile &f)
 {
-	f->Seek(GetOffset());
+	f.Seek(GetOffset());
 	auto size = GetSize();
 	m_editIntData.reserve(size);
 	for(auto i=decltype(size){0u};i<size;++i)
@@ -334,7 +335,7 @@ void resource::ExtraIntData::Read(const Resource &resource,std::shared_ptr<VFile
 		m_editIntData.push_back({});
 		auto &dependency = m_editIntData.back();
 		dependency.name = read_offset_string(f); // TODO: UTF8
-		dependency.value = f->Read<int32_t>();
+		dependency.value = f.Read<int32_t>();
 	}
 }
 
@@ -358,9 +359,9 @@ void resource::ExtraIntData::DebugPrint(std::stringstream &ss,const std::string 
 	ss<<t<<"}\n";
 }
 
-void resource::ExtraFloatData::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
+void resource::ExtraFloatData::Read(const Resource &resource,ufile::IFile &f)
 {
-	f->Seek(GetOffset());
+	f.Seek(GetOffset());
 	auto size = GetSize();
 	m_editFloatData.reserve(size);
 	for(auto i=decltype(size){0u};i<size;++i)
@@ -368,7 +369,7 @@ void resource::ExtraFloatData::Read(const Resource &resource,std::shared_ptr<VFi
 		m_editFloatData.push_back({});
 		auto &dependency = m_editFloatData.back();
 		dependency.name = read_offset_string(f); // TODO: UTF8
-		dependency.value = f->Read<float>();
+		dependency.value = f.Read<float>();
 	}
 }
 
@@ -392,9 +393,9 @@ void resource::ExtraFloatData::DebugPrint(std::stringstream &ss,const std::strin
 	ss<<t<<"}\n";
 }
 
-void resource::ExtraStringData::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
+void resource::ExtraStringData::Read(const Resource &resource,ufile::IFile &f)
 {
-	f->Seek(GetOffset());
+	f.Seek(GetOffset());
 	auto size = GetSize();
 	m_editStringData.reserve(size);
 	for(auto i=decltype(size){0u};i<size;++i)

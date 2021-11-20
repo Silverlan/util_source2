@@ -31,6 +31,7 @@ SOFTWARE.
 #include <functional>
 
 class VFilePtrInternal;
+namespace ufile {struct IFile;};
 namespace source2
 {
 	enum class BlockType : uint8_t
@@ -166,7 +167,7 @@ namespace source2
 	std::string to_string(REDIStruct blockType);
 
 	namespace resource {class Resource;};
-	std::shared_ptr<resource::Resource> load_resource(std::shared_ptr<VFilePtrInternal> file,const std::function<std::shared_ptr<VFilePtrInternal>(const std::string&)> &fAssetLoader=nullptr);
+	std::shared_ptr<resource::Resource> load_resource(ufile::IFile &file,const std::function<std::unique_ptr<ufile::IFile>(const std::string&)> &fAssetLoader=nullptr);
 	void debug_print(resource::Resource &resource,std::stringstream &ss);
 };
 

@@ -43,7 +43,7 @@ namespace source2::resource
 
 		REDIBlock &GetStruct(REDIStruct type);
 		virtual BlockType GetType() const override;
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 	private:
 		std::array<std::shared_ptr<REDIBlock>,umath::to_integral(REDIStruct::Count)> m_structs = {};
@@ -59,7 +59,7 @@ namespace source2::resource
 			std::string name;
 		};
 		virtual BlockType GetType() const override;
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 		const std::vector<ResourceReferenceInfo> &GetResourceReferenceInfos() const;
 	private:
@@ -249,7 +249,7 @@ namespace source2::resource
 		};
 
 		virtual BlockType GetType() const override;
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 		const std::vector<VertexBuffer> &GetVertexBuffers() const;
 		const std::vector<IndexBuffer> &GetIndexBuffers() const;
@@ -271,7 +271,7 @@ namespace source2::resource
 	{
 	public:
 		virtual BlockType GetType() const override;
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 	};
 
@@ -280,7 +280,7 @@ namespace source2::resource
 	{
 	public:
 		virtual BlockType GetType() const override;
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 	};
 
@@ -328,15 +328,15 @@ namespace source2::resource
 		};
 
 		virtual BlockType GetType() const override;
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 
 		uint32_t GetIntrospectionVersion() const;
 		const std::vector<ResourceDiskStruct> &GetReferencedStructs() const;
 		const std::vector<ResourceDiskEnum> &GetReferencedEnums() const;
 	private:
-		void ReadStructs(std::shared_ptr<VFilePtrInternal> f);
-		void ReadEnums(std::shared_ptr<VFilePtrInternal> f);
+		void ReadStructs(ufile::IFile &f);
+		void ReadEnums(ufile::IFile &f);
 		uint32_t m_introspectionVersion = 0;
 		std::vector<ResourceDiskStruct> m_referencedStructs {};
 		std::vector<ResourceDiskEnum> m_referencedEnums {};

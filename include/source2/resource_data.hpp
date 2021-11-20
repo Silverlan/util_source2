@@ -54,7 +54,7 @@ namespace source2::resource
 	{
 	public:
 		virtual BlockType GetType() const override;
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const;
 		IKeyValueCollection *GetData();
 	};
@@ -199,7 +199,7 @@ namespace source2::resource
 		: public ResourceData
 	{
 	public:
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const;
 		const std::shared_ptr<NTROStruct> &GetOutput() const;
 		void SetStructName(const std::string &structName);
@@ -207,13 +207,13 @@ namespace source2::resource
 		std::shared_ptr<NTROStruct> m_output = nullptr;
 		std::string m_structName;
 		std::shared_ptr<NTROStruct> ReadStructure(
-			const Resource &resource,const ResourceIntrospectionManifest::ResourceDiskStruct &refStruct,int64_t startingOffset,std::shared_ptr<VFilePtrInternal> f
+			const Resource &resource,const ResourceIntrospectionManifest::ResourceDiskStruct &refStruct,int64_t startingOffset,ufile::IFile &f
 		);
 		void ReadFieldIntrospection(
-			const Resource &resource,const ResourceIntrospectionManifest::ResourceDiskStruct::Field &field,NTROStruct &structEntry,std::shared_ptr<VFilePtrInternal> f
+			const Resource &resource,const ResourceIntrospectionManifest::ResourceDiskStruct::Field &field,NTROStruct &structEntry,ufile::IFile &f
 		);
 		std::shared_ptr<NTROValue> ReadField(
-			const Resource &resource,const ResourceIntrospectionManifest::ResourceDiskStruct::Field &field,bool pointer,std::shared_ptr<VFilePtrInternal> f
+			const Resource &resource,const ResourceIntrospectionManifest::ResourceDiskStruct::Field &field,bool pointer,ufile::IFile &f
 		);
 	};
 
@@ -228,7 +228,7 @@ namespace source2::resource
 			uint32_t unknown2;
 		};
 		const std::vector<NameEntry> &GetNames() const;
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 	private:
 		std::vector<NameEntry> m_names;
@@ -257,10 +257,10 @@ namespace source2::resource
 		int32_t GetLoopStart() const;
 		float GetDuration() const;
 		uint32_t GetStreamingDataSize() const;
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 	private:
-		void SetVersion4(std::shared_ptr<VFilePtrInternal> f);
+		void SetVersion4(ufile::IFile &f);
 		AudioFileType m_soundType = AudioFileType::AAC;
 		uint32_t m_sampleRate = 0u;
 		uint32_t m_bits = 0u;
@@ -280,7 +280,7 @@ namespace source2::resource
 	public:
 		KeyValuesOrNTRO();
 		KeyValuesOrNTRO(BlockType type,const std::string &introspectionStructName);
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 		virtual BlockType GetType() const override;
 
@@ -708,7 +708,7 @@ namespace source2::resource
 	public:
 		const std::string &GetName() const;
 		const std::string &GetShaderName() const;
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 
 		const int64_t *FindIntParam(const std::string &key) const;
@@ -739,7 +739,7 @@ namespace source2::resource
 	{
 	public:
 		const std::unordered_map<std::string,std::string> &GetValues() const;
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 	private:
 		std::unordered_map<std::string,std::string> m_values {};
@@ -760,7 +760,7 @@ namespace source2::resource
 		uint8_t GetMipMapCount() const;
 		uint32_t GetPicmip0Res() const;
 		const std::unordered_map<VTexExtraData,std::vector<uint8_t>> &GetExtraData() const;
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 
 		uint32_t GetBlockSize();
@@ -783,7 +783,7 @@ namespace source2::resource
 		std::unordered_map<VTexExtraData,std::vector<uint8_t>> m_extraData {};
 		uint32_t m_nonPow2Width = 0u;
 		uint32_t m_nonPow2Height = 0u;
-		std::shared_ptr<VFilePtrInternal> m_file = nullptr;
+		ufile::IFile *m_file = nullptr;
 
 		bool m_isCompressed = false;
 		std::vector<int32_t> m_compressedMips = {};
@@ -978,7 +978,7 @@ namespace source2::resource
 		const std::shared_ptr<KVObject> &GetData() const;
 		std::shared_ptr<KVObject> &GetData();
 
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		void DebugPrint(std::stringstream &ss,const std::string &t="") const;
 		virtual BlockType GetType() const override;
 		BinaryKV3()=default;
@@ -992,9 +992,9 @@ namespace source2::resource
 		//	static std::shared_ptr<KVValue> MakeValueFromPtr(KVType type, nullptr_t nptr, KVFlag flag);
 		static KVType ConvertBinaryOnlyKVType(KVType type);
 		static std::shared_ptr<KVValue> MakeValue(KVType type,std::shared_ptr<void> data,KVFlag flag);
-		void ReadVersion2(std::shared_ptr<VFilePtrInternal> f,DataStream &outData);
-		void BlockDecompress(std::shared_ptr<VFilePtrInternal> f,DataStream &outData);
-		void DecompressLZ4(std::shared_ptr<VFilePtrInternal> f,DataStream &outData);
+		void ReadVersion2(ufile::IFile &f,DataStream &outData);
+		void BlockDecompress(ufile::IFile &f,DataStream &outData);
+		void DecompressLZ4(ufile::IFile &f,DataStream &outData);
 		std::pair<KVType,KVFlag> ReadType(DataStream &ds);
 		std::shared_ptr<KVObject> ReadBinaryValue(const std::string &name, KVType datatype, KVFlag flagInfo, DataStream ds, std::shared_ptr<KVObject> optParent);
 		std::shared_ptr<KVObject> ParseBinaryKV3(DataStream &ds,std::shared_ptr<KVObject> optParent,bool inArray=false);

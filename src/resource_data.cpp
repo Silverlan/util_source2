@@ -30,6 +30,7 @@ SOFTWARE.
 #include <fsys/filesystem.h>
 #include <sharedutils/util.h>
 #include <sharedutils/datastream.h>
+#include <sharedutils/util_ifile.hpp>
 #include <lz4.h>
 
 using namespace source2;
@@ -118,7 +119,7 @@ resource::IKeyValueCollection *resource::ResourceData::GetData()
 	return keyValuesOrNTRO ? keyValuesOrNTRO->GetData().get() : nullptr;
 
 }
-void resource::ResourceData::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) {}
+void resource::ResourceData::Read(const Resource &resource,ufile::IFile &f) {}
 void resource::ResourceData::DebugPrint(std::stringstream &ss,const std::string &t) const
 {
 	ss<<t<<"ResourceData = {\n";
@@ -226,7 +227,7 @@ void resource::NTROStruct::DebugPrint(std::stringstream &ss,const std::string &t
 
 ///////////////
 
-void resource::NTRO::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
+void resource::NTRO::Read(const Resource &resource,ufile::IFile &f)
 {
 	auto *block = static_cast<const ResourceIntrospectionManifest*>(resource.FindBlock(source2::BlockType::NTRO));
 	if(block == nullptr)
@@ -249,7 +250,7 @@ void resource::NTRO::Read(const Resource &resource,std::shared_ptr<VFilePtrInter
 	}
 }
 void resource::NTRO::ReadFieldIntrospection(
-	const Resource &resource,const ResourceIntrospectionManifest::ResourceDiskStruct::Field &field,NTROStruct &structEntry,std::shared_ptr<VFilePtrInternal> f
+	const Resource &resource,const ResourceIntrospectionManifest::ResourceDiskStruct::Field &field,NTROStruct &structEntry,ufile::IFile &f
 )
 {
 	auto count = std::max<uint16_t>(field.count,static_cast<uint16_t>(1));
@@ -262,7 +263,7 @@ void resource::NTRO::ReadFieldIntrospection(
 		if(field.count > 0)
 			throw std::runtime_error{"Indirection.Count > 0 && field.Count > 0"};
 		auto indirection = field.indirections.at(0); // TODO: depth needs fixing?
-		auto offset = f->Read<uint32_t>();
+		auto offset = f.Read<uint32_t>();
 		if(indirection == 0x03)
 		{
 			pointer = true;
@@ -272,17 +273,17 @@ void resource::NTRO::ReadFieldIntrospection(
 				structEntry.Add(field.fieldName, *value); //being byte shouldn't matter
 				return;
 			}
-			prevOffset = f->Tell();
-			f->Seek(f->Tell() +offset -sizeof(uint32_t));
+			prevOffset = f.Tell();
+			f.Seek(f.Tell() +offset -sizeof(uint32_t));
 		}
 		else if(indirection == 0x04)
 		{
-			count = f->Read<uint32_t>();
+			count = f.Read<uint32_t>();
 
-			prevOffset = f->Tell();
+			prevOffset = f.Tell();
 
 			if(count > 0)
-				f->Seek(f->Tell() +offset -sizeof(uint32_t) *2);
+				f.Seek(f.Tell() +offset -sizeof(uint32_t) *2);
 		}
 		else
 			throw std::runtime_error{"Unknown indirection. (" +std::to_string(indirection) +")"};
@@ -310,16 +311,16 @@ void resource::NTRO::ReadFieldIntrospection(
 		}
 	}
 	if(prevOffset > 0)
-		f->Seek(prevOffset);
+		f.Seek(prevOffset);
 }
 
-static std::shared_ptr<resource::NTROValue> get_float_array_ntro_value(uint32_t numValues,resource::DataType type,bool pointer,std::shared_ptr<VFilePtrInternal> f)
+static std::shared_ptr<resource::NTROValue> get_float_array_ntro_value(uint32_t numValues,resource::DataType type,bool pointer,ufile::IFile &f)
 {
 	std::vector<std::shared_ptr<resource::NTROValue>> values {};
 	values.reserve(numValues);
 	for(auto i=decltype(numValues){0u};i<numValues;++i)
 	{
-		auto val = f->Read<float>();
+		auto val = f.Read<float>();
 		values.push_back(std::static_pointer_cast<resource::NTROValue>(std::make_shared<resource::TNTROValue<float>>(resource::DataType::Float,val,pointer)));
 	}
 	return std::static_pointer_cast<resource::NTROValue>(std::make_shared<resource::TNTROValue<resource::NTROStruct>>(
@@ -328,7 +329,7 @@ static std::shared_ptr<resource::NTROValue> get_float_array_ntro_value(uint32_t 
 		pointer
 	));
 }
-std::shared_ptr<resource::NTROValue> resource::NTRO::ReadField(const Resource &resource,const ResourceIntrospectionManifest::ResourceDiskStruct::Field &field,bool pointer,std::shared_ptr<VFilePtrInternal> f)
+std::shared_ptr<resource::NTROValue> resource::NTRO::ReadField(const Resource &resource,const ResourceIntrospectionManifest::ResourceDiskStruct::Field &field,bool pointer,ufile::IFile &f)
 {
 	switch(field.type)
 	{
@@ -340,42 +341,42 @@ std::shared_ptr<resource::NTROValue> resource::NTRO::ReadField(const Resource &r
 			return diskStruct.id == field.typeData;
 		});
 		auto &newStruct = *it;
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<std::shared_ptr<NTROStruct>>>(field.type,ReadStructure(resource,newStruct, f->Tell(),f),pointer));
+		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<std::shared_ptr<NTROStruct>>>(field.type,ReadStructure(resource,newStruct, f.Tell(),f),pointer));
 	}
 	case DataType::Enum:
 		// TODO: Lookup in ReferencedEnums
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<uint32_t>>(field.type, f->Read<uint32_t>(), pointer));
+		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<uint32_t>>(field.type, f.Read<uint32_t>(), pointer));
 
 	case DataType::SByte:
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<int8_t>>(field.type, f->Read<int8_t>(), pointer));
+		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<int8_t>>(field.type, f.Read<int8_t>(), pointer));
 
 	case DataType::Byte:
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<uint8_t>>(field.type, f->Read<uint8_t>(), pointer));
+		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<uint8_t>>(field.type, f.Read<uint8_t>(), pointer));
 
 	case DataType::Boolean:
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<bool>>(field.type, f->Read<uint8_t>() == 1 ? true : false, pointer));
+		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<bool>>(field.type, f.Read<uint8_t>() == 1 ? true : false, pointer));
 
 	case DataType::Int16:
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<int16_t>>(field.type, f->Read<int16_t>(), pointer));
+		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<int16_t>>(field.type, f.Read<int16_t>(), pointer));
 
 	case DataType::UInt16:
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<uint16_t>>(field.type, f->Read<uint16_t>(), pointer));
+		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<uint16_t>>(field.type, f.Read<uint16_t>(), pointer));
 
 	case DataType::Int32:
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<int32_t>>(field.type, f->Read<int32_t>(), pointer));
+		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<int32_t>>(field.type, f.Read<int32_t>(), pointer));
 
 	case DataType::UInt32:
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<uint32_t>>(field.type, f->Read<uint32_t>(), pointer));
+		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<uint32_t>>(field.type, f.Read<uint32_t>(), pointer));
 
 	case DataType::Float:
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<float>>(field.type, f->Read<float>(), pointer));
+		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<float>>(field.type, f.Read<float>(), pointer));
 
 	case DataType::Int64:
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<int64_t>>(field.type, f->Read<int64_t>(), pointer));
+		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<int64_t>>(field.type, f.Read<int64_t>(), pointer));
 
 	case DataType::ExternalReference:
 	{
-		auto id = f->Read<uint64_t>();
+		auto id = f.Read<uint64_t>();
 		auto *externalReferences = resource.GetExternalReferences();
 		std::string value {};
 		if(externalReferences)
@@ -390,7 +391,7 @@ std::shared_ptr<resource::NTROValue> resource::NTRO::ReadField(const Resource &r
 		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<std::string>>(field.type, value, pointer));
 	}
 	case DataType::UInt64:
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<uint64_t>>(field.type, f->Read<uint64_t>(), pointer));
+		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<uint64_t>>(field.type, f.Read<uint64_t>(), pointer));
 
 	case DataType::Vector:
 		return get_float_array_ntro_value(3,field.type,pointer,f);
@@ -418,22 +419,22 @@ std::shared_ptr<resource::NTROValue> resource::NTRO::ReadField(const Resource &r
 	return nullptr;
 }
 std::shared_ptr<resource::NTROStruct> resource::NTRO::ReadStructure(
-	const Resource &resource,const ResourceIntrospectionManifest::ResourceDiskStruct &refStruct,int64_t startingOffset,std::shared_ptr<VFilePtrInternal> f
+	const Resource &resource,const ResourceIntrospectionManifest::ResourceDiskStruct &refStruct,int64_t startingOffset,ufile::IFile &f
 )
 {
 	auto structEntry = std::make_shared<NTROStruct>(refStruct.name);
 	for(auto &field : refStruct.fieldIntrospection)
 	{
-		f->Seek(startingOffset +field.diskOffset);
+		f.Seek(startingOffset +field.diskOffset);
 		ReadFieldIntrospection(resource,field,*structEntry,f);
 	}
 
 	// Some structs are padded, so all the field sizes do not add up to the size on disk
-	f->Seek(startingOffset +refStruct.diskSize);
+	f.Seek(startingOffset +refStruct.diskSize);
 
 	if(refStruct.baseStructId != 0)
 	{
-		auto previousOffset = f->Tell();
+		auto previousOffset = f.Tell();
 		auto *introspectionManifest = resource.GetIntrospectionManifest();
 		auto &refStructs = introspectionManifest->GetReferencedStructs();
 		auto it = std::find_if(refStructs.begin(),refStructs.end(),[&refStruct](const ResourceIntrospectionManifest::ResourceDiskStruct &diskStruct) {
@@ -444,10 +445,10 @@ std::shared_ptr<resource::NTROStruct> resource::NTRO::ReadStructure(
 		// Valve doesn't print this struct's type, so we can't just call ReadStructure *sigh*
 		for(auto &field : newStruct.fieldIntrospection)
 		{
-			f->Seek(startingOffset +field.diskOffset);
+			f.Seek(startingOffset +field.diskOffset);
 			ReadFieldIntrospection(resource,field,*structEntry,f);
 		}
-		f->Seek(previousOffset);
+		f.Seek(previousOffset);
 	}
 	return structEntry;
 }
@@ -465,25 +466,25 @@ void resource::NTRO::SetStructName(const std::string &structName) {m_structName 
 ///////////////
 
 const std::vector<resource::Panorama::NameEntry> &resource::Panorama::GetNames() const {return m_names;}
-void resource::Panorama::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
+void resource::Panorama::Read(const Resource &resource,ufile::IFile &f)
 {
-	f->Seek(GetOffset());
-	m_crc32 = f->Read<uint32_t>();
-	auto size = f->Read<uint16_t>();
+	f.Seek(GetOffset());
+	m_crc32 = f.Read<uint32_t>();
+	auto size = f.Read<uint16_t>();
 	m_names.reserve(size);
 	for(auto i=decltype(size){0u};i<size;++i)
 	{
 		m_names.push_back({});
 		auto &nameEntry = m_names.back();
-		nameEntry.name = f->ReadString(); // TODO: UTF8
-		nameEntry.unknown1 = f->Read<uint32_t>();
-		nameEntry.unknown2 = f->Read<uint32_t>();
+		nameEntry.name = f.ReadString(); // TODO: UTF8
+		nameEntry.unknown1 = f.Read<uint32_t>();
+		nameEntry.unknown2 = f.Read<uint32_t>();
 	}
 
-	auto headerSize = f->Tell() -GetOffset();
+	auto headerSize = f.Tell() -GetOffset();
 	auto numDataBytes = size -headerSize;
 	m_data.resize(numDataBytes);
-	f->Read(m_data.data(),m_data.size() *sizeof(m_data.front()));
+	f.Read(m_data.data(),m_data.size() *sizeof(m_data.front()));
 	// TODO
 	//if(m_crc32.Compute(data) != CRC32)
 	{
@@ -518,9 +519,9 @@ uint32_t resource::Sound::GetSampleCount() const {return m_sampleCount;}
 int32_t resource::Sound::GetLoopStart() const {return m_loopStart;}
 float resource::Sound::GetDuration() const {return m_duration;}
 uint32_t resource::Sound::GetStreamingDataSize() const {return m_streamingDataSize;}
-void resource::Sound::SetVersion4(std::shared_ptr<VFilePtrInternal> f)
+void resource::Sound::SetVersion4(ufile::IFile &f)
 {
-	auto type = f->Read<uint16_t>();
+	auto type = f.Read<uint16_t>();
 
 	// We don't know if it's actually calculated, or if its a lookup
 	switch(type)
@@ -547,14 +548,14 @@ void resource::Sound::SetVersion4(std::shared_ptr<VFilePtrInternal> f)
 		break;
 	}
 }
-void resource::Sound::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
+void resource::Sound::Read(const Resource &resource,ufile::IFile &f)
 {
-	f->Seek(GetOffset());
+	f.Seek(GetOffset());
 	if(resource.GetVersion() > 4)
 		throw std::invalid_argument{"Invalid vsnd version '" +std::to_string(resource.GetVersion()) +"'"};
 	if(resource.GetVersion() == 4)
 	{
-		m_sampleRate = f->Read<uint16_t>();
+		m_sampleRate = f.Read<uint16_t>();
 		SetVersion4(f);
 		m_sampleSize = m_bits /8;
 		m_channels = 1;
@@ -567,7 +568,7 @@ void resource::Sound::Read(const Resource &resource,std::shared_ptr<VFilePtrInte
 			auto mask = (1<<nrBits) -1;
 			return static_cast<uint32_t>(rightShifted &mask);
 		};
-		auto bitpackedSoundInfo = f->Read<uint32_t>();
+		auto bitpackedSoundInfo = f.Read<uint32_t>();
 		auto type = fExtractSub(bitpackedSoundInfo,0,2);
 
 		if(type > 2)
@@ -580,11 +581,11 @@ void resource::Sound::Read(const Resource &resource,std::shared_ptr<VFilePtrInte
 		m_audioFormat = fExtractSub(bitpackedSoundInfo, 12, 2);
 		m_sampleRate = fExtractSub(bitpackedSoundInfo, 14, 17);
 	}
-	m_loopStart = f->Read<int32_t>();
-	m_sampleCount = f->Read<uint32_t>();
-	m_duration = f->Read<float>();
-	f->Seek(f->Tell() +sizeof(uint32_t) *3);
-	m_streamingDataSize = f->Read<uint32_t>();
+	m_loopStart = f.Read<int32_t>();
+	m_sampleCount = f.Read<uint32_t>();
+	m_duration = f.Read<float>();
+	f.Seek(f.Tell() +sizeof(uint32_t) *3);
+	m_streamingDataSize = f.Read<uint32_t>();
 }
 void resource::Sound::DebugPrint(std::stringstream &ss,const std::string &t) const
 {
@@ -624,7 +625,7 @@ resource::KeyValuesOrNTRO::KeyValuesOrNTRO(BlockType type,const std::string &int
 resource::KeyValuesOrNTRO::KeyValuesOrNTRO()
 	: KeyValuesOrNTRO{BlockType::DATA,""}
 {}
-void resource::KeyValuesOrNTRO::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
+void resource::KeyValuesOrNTRO::Read(const Resource &resource,ufile::IFile &f)
 {
 	if(resource.FindBlock(source2::BlockType::NTRO) == nullptr)
 	{
@@ -675,7 +676,7 @@ template<typename T>
 	}
 }
 
-void resource::Material::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
+void resource::Material::Read(const Resource &resource,ufile::IFile &f)
 {
 	KeyValuesOrNTRO::Read(resource,f);
 	
@@ -779,7 +780,7 @@ void resource::Material::DebugPrint(std::stringstream &ss,const std::string &t) 
 
 ///////////////
 
-void resource::SoundEventScript::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
+void resource::SoundEventScript::Read(const Resource &resource,ufile::IFile &f)
 {
 	NTRO::Read(resource,f);
 
@@ -1239,60 +1240,60 @@ void resource::Texture::UncompressBC7(uint32_t RowBytes, DataStream &ds, std::ve
 		}
 	}
 }
-void resource::Texture::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
+void resource::Texture::Read(const Resource &resource,ufile::IFile &f)
 {
-	m_file = f;
-	f->Seek(GetOffset());
-	auto version = f->Read<uint16_t>();
+	m_file = &f;
+	f.Seek(GetOffset());
+	auto version = f.Read<uint16_t>();
 	if(version != 1)
 		throw std::runtime_error{"Unknown vtex version. ({" +std::to_string(version) +"} != expected 1)"};
-	m_flags = f->Read<VTexFlags>();
-	m_reflectivity = f->Read<Vector4>();
-	m_width = f->Read<uint16_t>();
-	m_height = f->Read<uint16_t>();
-	m_depth = f->Read<uint16_t>();
-	m_format = f->Read<VTexFormat>();
-	m_mipMapCount = f->Read<uint8_t>();
-	m_picmip0Res = f->Read<uint32_t>();
+	m_flags = f.Read<VTexFlags>();
+	m_reflectivity = f.Read<Vector4>();
+	m_width = f.Read<uint16_t>();
+	m_height = f.Read<uint16_t>();
+	m_depth = f.Read<uint16_t>();
+	m_format = f.Read<VTexFormat>();
+	m_mipMapCount = f.Read<uint8_t>();
+	m_picmip0Res = f.Read<uint32_t>();
 
-	auto extraDataOffset = f->Read<uint32_t>();
-	auto extraDataCount = f->Read<uint32_t>();
+	auto extraDataOffset = f.Read<uint32_t>();
+	auto extraDataCount = f.Read<uint32_t>();
 	if(extraDataCount > 0u)
 	{
-		f->Seek(f->Tell() +extraDataOffset -sizeof(uint32_t) *2);
+		f.Seek(f.Tell() +extraDataOffset -sizeof(uint32_t) *2);
 		for(auto i=decltype(extraDataCount){0u};i<extraDataCount;++i)
 		{
-			auto type = f->Read<VTexExtraData>();
-			auto offset = f->Read<uint32_t>() -sizeof(uint32_t) *2;
-			auto size = f->Read<uint32_t>();
-			auto prevOffset = f->Tell();
-			f->Seek(f->Tell() +offset);
+			auto type = f.Read<VTexExtraData>();
+			auto offset = f.Read<uint32_t>() -sizeof(uint32_t) *2;
+			auto size = f.Read<uint32_t>();
+			auto prevOffset = f.Tell();
+			f.Seek(f.Tell() +offset);
 
 			if(type == VTexExtraData::FILL_TO_POWER_OF_TWO)
 			{
-				f->Seek(f->Tell() +sizeof(uint16_t));
-				auto nw = f->Read<uint16_t>();
-				auto nh = f->Read<uint16_t>();
+				f.Seek(f.Tell() +sizeof(uint16_t));
+				auto nw = f.Read<uint16_t>();
+				auto nh = f.Read<uint16_t>();
 				if (nw > 0 && nh > 0 && m_width >= nw && m_height >= nh)
 				{
 					m_nonPow2Width = nw;
 					m_nonPow2Height = nh;
 				}
-				f->Seek(f->Tell() -6);
+				f.Seek(f.Tell() -6);
 			}
 
 			auto it = m_extraData.insert(std::make_pair(type,std::vector<uint8_t>{})).first;
 			auto &data = it->second;
 			data.resize(size);
-			f->Read(data.data(),data.size() *sizeof(data.front()));
+			f.Read(data.data(),data.size() *sizeof(data.front()));
 
 			if (type == VTexExtraData::COMPRESSED_MIP_SIZE)
 			{
-				f->Seek(f->Tell() -size);
+				f.Seek(f.Tell() -size);
 
-				auto int1 = f->Read<uint32_t>(); // 1?
-				auto int2 = f->Read<uint32_t>(); // 8?
-				auto mips = f->Read<uint32_t>();
+				auto int1 = f.Read<uint32_t>(); // 1?
+				auto int2 = f.Read<uint32_t>(); // 8?
+				auto mips = f.Read<uint32_t>();
 
 				if (int1 != 1 && int1 != 0)
 					throw std::runtime_error("int1 got: {int1}");
@@ -1304,9 +1305,9 @@ void resource::Texture::Read(const Resource &resource,std::shared_ptr<VFilePtrIn
 
 				m_compressedMips.resize(mips);
 				for(auto mip=decltype(mips){0u};mip<mips;++mip)
-					m_compressedMips.at(mip) = f->Read<int32_t>();
+					m_compressedMips.at(mip) = f.Read<int32_t>();
 			}
-			f->Seek(prevOffset);
+			f.Seek(prevOffset);
 		}
 	}
 	m_dataOffset = GetOffset() +GetSize();
@@ -1608,12 +1609,12 @@ std::shared_ptr<resource::KVObject> &resource::BinaryKV3::GetData() {return m_da
 resource::BinaryKV3::BinaryKV3(BlockType type)
 	: m_blockType{type}
 {}
-void resource::BinaryKV3::Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f)
+void resource::BinaryKV3::Read(const Resource &resource,ufile::IFile &f)
 {
-	f->Seek(GetOffset());
+	f.Seek(GetOffset());
 
 	DataStream ds {};
-	auto magic = f->Read<uint32_t>();
+	auto magic = f.Read<uint32_t>();
 	if(magic == MAGIC2)
 	{
 		ReadVersion2(f,ds);
@@ -1623,8 +1624,8 @@ void resource::BinaryKV3::Read(const Resource &resource,std::shared_ptr<VFilePtr
 	if (magic != MAGIC)
 		throw std::runtime_error{"Invalid KV3 signature " +std::to_string(magic)};
 
-	auto encoding = f->Read<util::GUID>();
-	auto format = f->Read<util::GUID>();
+	auto encoding = f.Read<util::GUID>();
+	auto format = f.Read<util::GUID>();
 
 	// Valve's implementation lives in LoadKV3Binary()
 	// KV3_ENCODING_BINARY_BLOCK_COMPRESSED calls CBlockCompress::FastDecompress()
@@ -1637,9 +1638,9 @@ void resource::BinaryKV3::Read(const Resource &resource,std::shared_ptr<VFilePtr
 		DecompressLZ4(f,ds);
 	else if (util::compare_guid(encoding,KV3_ENCODING_BINARY_UNCOMPRESSED))
 	{
-		auto szCpy = f->GetSize() -f->Tell();
+		auto szCpy = f.GetSize() -f.Tell();
 		ds->Resize(szCpy);
-		f->Read(ds->GetData(),szCpy);
+		f.Read(ds->GetData(),szCpy);
 		ds->SetOffset(0);
 	}
 	else
@@ -1682,21 +1683,21 @@ void resource::BinaryKV3::DebugPrint(std::stringstream &ss,const std::string &t)
 	ss<<t<<"}\n";
 }
 BlockType resource::BinaryKV3::GetType() const {return m_blockType;}
-void resource::BinaryKV3::ReadVersion2(std::shared_ptr<VFilePtrInternal> f,DataStream &outData)
+void resource::BinaryKV3::ReadVersion2(ufile::IFile &f,DataStream &outData)
 {
-	auto format = f->Read<util::GUID>();
+	auto format = f.Read<util::GUID>();
 
-	auto compressionMethod = f->Read<int32_t>();
-	auto countOfBinaryBytes = f->Read<int32_t>(); // how many bytes (binary blobs)
-	auto countOfIntegers = f->Read<int32_t>(); // how many 4 byte values (ints)
-	auto countOfEightByteValues = f->Read<int32_t>(); // how many 8 byte values (doubles)
+	auto compressionMethod = f.Read<int32_t>();
+	auto countOfBinaryBytes = f.Read<int32_t>(); // how many bytes (binary blobs)
+	auto countOfIntegers = f.Read<int32_t>(); // how many 4 byte values (ints)
+	auto countOfEightByteValues = f.Read<int32_t>(); // how many 8 byte values (doubles)
 
 	if (compressionMethod == 0)
 	{
-		auto length = f->Read<int32_t>();
+		auto length = f.Read<int32_t>();
 
 		outData->Resize(length);
-		f->Read(outData->GetData(),length);
+		f.Read(outData->GetData(),length);
 	}
 	else if (compressionMethod == 1)
 		DecompressLZ4(f,outData);
@@ -1744,23 +1745,23 @@ void resource::BinaryKV3::ReadVersion2(std::shared_ptr<VFilePtrInternal> f,DataS
 
 	m_data = ParseBinaryKV3(outData, nullptr, true);
 }
-void resource::BinaryKV3::BlockDecompress(std::shared_ptr<VFilePtrInternal> f,DataStream &outData)
+void resource::BinaryKV3::BlockDecompress(ufile::IFile &f,DataStream &outData)
 {
 	// It is flags, right?
-	auto flags = f->Read<std::array<uint8_t,4>>();
+	auto flags = f.Read<std::array<uint8_t,4>>();
 
 	// outWrite.Write(flags);
 	if ((flags[3] & 0x80) > 0)
 	{
-		auto size = f->GetSize() -f->Tell();
+		auto size = f.GetSize() -f.Tell();
 		outData->Resize(size);
-		f->Read(outData->GetData(),size);
+		f.Read(outData->GetData(),size);
 	}
 	else
 	{
-		outData->Reserve(f->GetSize() -f->Tell());
+		outData->Reserve(f.GetSize() -f.Tell());
 		std::vector<uint8_t> vOutData {};
-		vOutData.reserve(f->GetSize() -f->Tell());
+		vOutData.reserve(f.GetSize() -f.Tell());
 		auto running = true;
 		uint64_t dataReadOffset = 0ull;
 		uint64_t dataWriteOffset = 0ull;
@@ -1785,17 +1786,17 @@ void resource::BinaryKV3::BlockDecompress(std::shared_ptr<VFilePtrInternal> f,Da
 			dataWriteOffset += size;
 			dataReadOffset += size;
 		};
-		while (f->Tell() != f->GetSize() && running)
+		while (f.Tell() != f.GetSize() && running)
 		{
 			//try
 			//{
-				auto blockMask = f->Read<uint16_t>();
+				auto blockMask = f.Read<uint16_t>();
 				for(auto i=decltype(blockMask){0u};i<(sizeof(blockMask) *8);++i)
 				{
 					// is the ith bit 1
 					if ((blockMask & (1 << i)) > 0)
 					{
-						auto offsetSize = f->Read<uint16_t>();
+						auto offsetSize = f.Read<uint16_t>();
 						auto offset = ((offsetSize & 0xFFF0) >> 4) + 1;
 						auto size = (offsetSize & 0x000F) + 3;
 
@@ -1817,7 +1818,7 @@ void resource::BinaryKV3::BlockDecompress(std::shared_ptr<VFilePtrInternal> f,Da
 					}
 					else
 					{
-						auto data = f->Read<uint8_t>();
+						auto data = f.Read<uint8_t>();
 						fWrite(&data,sizeof(data));
 					}
 
@@ -1840,14 +1841,14 @@ void resource::BinaryKV3::BlockDecompress(std::shared_ptr<VFilePtrInternal> f,Da
 	outData->SetOffset(0);
 }
 
-void resource::BinaryKV3::DecompressLZ4(std::shared_ptr<VFilePtrInternal> f,DataStream &outData)
+void resource::BinaryKV3::DecompressLZ4(ufile::IFile &f,DataStream &outData)
 {
-	auto uncompressedSize = f->Read<uint32_t>();
-	auto compressedSize = GetSize() - (f->Tell() - GetOffset());
+	auto uncompressedSize = f.Read<uint32_t>();
+	auto compressedSize = GetSize() - (f.Tell() - GetOffset());
 
 	std::vector<uint8_t> input {};
 	input.resize(compressedSize);
-	f->Read(input.data(),input.size() *sizeof(input.front()));
+	f.Read(input.data(),input.size() *sizeof(input.front()));
 
 	outData->Resize(uncompressedSize);
 	auto result = LZ4_decompress_safe(reinterpret_cast<char*>(input.data()),reinterpret_cast<char*>(outData->GetData()),input.size(),uncompressedSize);

@@ -25,17 +25,18 @@ SOFTWARE.
 
 #include "source2/impl.hpp"
 #include <fsys/filesystem.h>
+#include <sharedutils/util_ifile.hpp>
 
 using namespace source2;
 
-std::string resource::read_offset_string(std::shared_ptr<VFilePtrInternal> f)
+std::string resource::read_offset_string(ufile::IFile &f)
 {
-	auto currentOffset = f->Tell();
-	auto offset = f->Read<uint32_t>();
+	auto currentOffset = f.Tell();
+	auto offset = f.Read<uint32_t>();
 	if(offset == 0)
 		return {};
-	f->Seek(currentOffset +offset);
-	auto str = f->ReadString(); // TODO: Encoding
-	f->Seek(currentOffset +sizeof(uint32_t));
+	f.Seek(currentOffset +offset);
+	auto str = f.ReadString(); // TODO: Encoding
+	f.Seek(currentOffset +sizeof(uint32_t));
 	return str;
 }

@@ -33,9 +33,10 @@ SOFTWARE.
 #include <cinttypes>
 
 class VFilePtrInternal;
+namespace ufile {struct IFile;};
 namespace source2::resource
 {
-	std::string read_offset_string(std::shared_ptr<VFilePtrInternal> f);
+	std::string read_offset_string(ufile::IFile &f);
 };
 
 namespace source2::impl

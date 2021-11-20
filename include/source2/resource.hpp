@@ -30,6 +30,7 @@ SOFTWARE.
 #include <vector>
 #include <string>
 
+namespace ufile {struct IFile;};
 namespace source2::resource
 {
 	class ResourceData;
@@ -38,15 +39,15 @@ namespace source2::resource
 	class Resource
 	{
 	public:
-		Resource(const std::function<std::shared_ptr<VFilePtrInternal>(const std::string&)> &assetFileLoader);
-		std::shared_ptr<VFilePtrInternal> OpenAssetFile(const std::string &path) const;
+		Resource(const std::function<std::unique_ptr<ufile::IFile>(const std::string&)> &assetFileLoader);
+		std::unique_ptr<ufile::IFile> OpenAssetFile(const std::string &path) const;
 		std::shared_ptr<Resource> LoadResource(const std::string &path) const;
 
 		Block *FindBlock(BlockType type);
 		const Block *FindBlock(BlockType type) const;
 		const std::vector<std::shared_ptr<Block>> &GetBlocks() const;
 		std::shared_ptr<Block> GetBlock(uint32_t idx) const;
-		bool Read(std::shared_ptr<VFilePtrInternal> f);
+		bool Read(ufile::IFile &f);
 		std::shared_ptr<source2::resource::Block> ConstructFromType(std::string input);
 		std::shared_ptr<source2::resource::ResourceData> ConstructResourceType();
 
@@ -61,7 +62,7 @@ namespace source2::resource
 		static bool IsHandledResourceType(ResourceType type);
 		ResourceType m_resourceType = ResourceType::Unknown;
 		std::vector<std::shared_ptr<Block>> m_blocks = {};
-		std::function<std::shared_ptr<VFilePtrInternal>(const std::string&)> m_assetFileLoader = nullptr;
+		std::function<std::unique_ptr<ufile::IFile>(const std::string&)> m_assetFileLoader = nullptr;
 		uint16_t m_version = 0u;
 	};
 };

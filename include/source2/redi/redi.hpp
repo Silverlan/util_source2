@@ -55,7 +55,7 @@ namespace source2::resource
 
 			void DebugPrint(std::stringstream &ss,const std::string &t="") const;
 		};
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 	private:
 		std::vector<InputDependency> m_inputDependencies {};
@@ -78,7 +78,7 @@ namespace source2::resource
 
 			void DebugPrint(std::stringstream &ss,const std::string &t="") const;
 		};
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 	private:
 		std::vector<ArgumentDependency> m_argumentDependencies {};
@@ -98,7 +98,7 @@ namespace source2::resource
 			void DebugPrint(std::stringstream &ss,const std::string &t="") const;
 		};
 		static ResourceType DetermineResourceTypeByCompilerIdentifier(const SpecialDependency &input);
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 		const std::vector<SpecialDependency> &GetSpecialDependencies() const;
 	private:
@@ -109,7 +109,7 @@ namespace source2::resource
 		: public REDIBlock
 	{
 	public:
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 	};
 
@@ -124,7 +124,7 @@ namespace source2::resource
 
 			void DebugPrint(std::stringstream &ss,const std::string &t="") const;
 		};
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 	private:
 		std::vector<AdditionalRelatedFile> m_additionalRelatedFiles {};
@@ -141,7 +141,7 @@ namespace source2::resource
 
 			void DebugPrint(std::stringstream &ss,const std::string &t="") const;
 		};
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 	private:
 		std::vector<ReferenceInfo> m_references {};
@@ -158,7 +158,7 @@ namespace source2::resource
 
 			void DebugPrint(std::stringstream &ss,const std::string &t="") const;
 		};
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 	private:
 		std::vector<EditIntData> m_editIntData {};
@@ -175,7 +175,7 @@ namespace source2::resource
 
 			void DebugPrint(std::stringstream &ss,const std::string &t="") const;
 		};
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 	private:
 		std::vector<EditFloatData> m_editFloatData {};
@@ -192,7 +192,7 @@ namespace source2::resource
 
 			void DebugPrint(std::stringstream &ss,const std::string &t="") const;
 		};
-		virtual void Read(const Resource &resource,std::shared_ptr<VFilePtrInternal> f) override;
+		virtual void Read(const Resource &resource,ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 	private:
 		std::vector<EditStringData> m_editStringData {};
