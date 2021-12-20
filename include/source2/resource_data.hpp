@@ -720,6 +720,16 @@ namespace source2::resource
 		const float *FindFloatAttr(const std::string &key) const;
 		const Vector4 *FindVectorAttr(const std::string &key) const;
 		const std::string *FindTextureAttr(const std::string &key) const;
+
+		const std::unordered_map<std::string,int64_t> &GetIntParams() const {return m_intParams;}
+		const std::unordered_map<std::string,float> &GetFloatParams() const {return m_floatParams;}
+		const std::unordered_map<std::string,Vector4> &GetVectorParams() const {return m_vectorParams;}
+		const std::unordered_map<std::string,std::string> &GetTextureParams() const {return m_textureParams;}
+
+		const std::unordered_map<std::string,int64_t> &GetIntAttributes() const {return m_intAttributes;}
+		const std::unordered_map<std::string,float> &GetFloatAttributes() const {return m_floatAttributes;}
+		const std::unordered_map<std::string,Vector4> &GetVectorAttributes() const {return m_vectorAttributes;}
+		const std::unordered_map<std::string,std::string> &GetStringAttributes() const {return m_stringAttributes;}
 	private:
 		std::string m_name;
 		std::string m_shaderName;
