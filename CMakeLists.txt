@@ -69,7 +69,7 @@ set(DEFINITIONS)
 
 ##### CONFIGURATION #####
 
-if(${UTIL_UDM_STATIC})
+if(${UTIL_SOURCE2_STATIC})
 	set(LIB_TYPE STATIC)
 else()
 	set(LIB_TYPE SHARED)
@@ -79,14 +79,6 @@ else()
 	add_definitions(-DSHUTIL_STATIC)
 	add_definitions(-DMUTIL_STATIC)
 	add_definitions(-DVFILESYSTEM_STATIC)
-endif()
-
-
-if(ENABLE_STATIC_LIBRARY_FLAG)
-	option(CONFIG_STATIC_LIBRARY "Build as static library?" OFF)
-endif()
-if(DEFINED ${CONFIG_STATIC_LIBRARY} AND ${CONFIG_STATIC_LIBRARY})
-	set(LIB_TYPE STATIC)
 endif()
 
 foreach(def IN LISTS DEFINITIONS)
