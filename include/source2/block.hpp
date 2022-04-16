@@ -31,7 +31,7 @@ SOFTWARE.
 
 namespace source2::resource
 {
-	class Block
+	class DLLUS2 Block
 		: public std::enable_shared_from_this<Block>
 	{
 	public:

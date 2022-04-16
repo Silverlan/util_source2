@@ -121,40 +121,43 @@ bool resource::Resource::Read(ufile::IFile &f)
 		if(block == nullptr)
 			block = ConstructFromType(strBlockType);
 
-		block->SetOffset(offset);
-		block->SetSize(size);
-
-		if(strBlockType == "REDI" || strBlockType == "NTRO")
-			block->Read(*this,f);
-
-		m_blocks.push_back(block);
-
-		switch(block->GetType())
+		if(block != nullptr)
 		{
-		case BlockType::REDI:
-			// Try to determine resource type by looking at first compiler indentifier
-			if(m_resourceType == ResourceType::Unknown)
+			block->SetOffset(offset);
+			block->SetSize(size);
+
+			if(strBlockType == "REDI" || strBlockType == "NTRO")
+				block->Read(*this,f);
+
+			m_blocks.push_back(block);
+
+			switch(block->GetType())
 			{
-				auto &specialDeps = static_cast<SpecialDependencies&>(static_cast<ResourceEditInfo&>(*block).GetStruct(REDIStruct::SpecialDependencies));
-				auto &list = specialDeps.GetSpecialDependencies();
-				if(list.empty() == false)
-					m_resourceType = SpecialDependencies::DetermineResourceTypeByCompilerIdentifier(list.front());
-			}
-			break;
-		case BlockType::NTRO:
-			if(m_resourceType == ResourceType::Unknown)
-			{
-				auto *manifest = GetIntrospectionManifest();
-				if(manifest && manifest->GetReferencedStructs().size() > 0)
+			case BlockType::REDI:
+				// Try to determine resource type by looking at first compiler indentifier
+				if(m_resourceType == ResourceType::Unknown)
 				{
-					auto &strct = manifest->GetReferencedStructs().front();
-					if(strct.name == "VSoundEventScript_t")
-						m_resourceType = ResourceType::SoundEventScript;
-					else if(strct.name == "CWorldVisibility")
-						m_resourceType = ResourceType::WorldVisibility;
+					auto &specialDeps = static_cast<SpecialDependencies&>(static_cast<ResourceEditInfo&>(*block).GetStruct(REDIStruct::SpecialDependencies));
+					auto &list = specialDeps.GetSpecialDependencies();
+					if(list.empty() == false)
+						m_resourceType = SpecialDependencies::DetermineResourceTypeByCompilerIdentifier(list.front());
 				}
+				break;
+			case BlockType::NTRO:
+				if(m_resourceType == ResourceType::Unknown)
+				{
+					auto *manifest = GetIntrospectionManifest();
+					if(manifest && manifest->GetReferencedStructs().size() > 0)
+					{
+						auto &strct = manifest->GetReferencedStructs().front();
+						if(strct.name == "VSoundEventScript_t")
+							m_resourceType = ResourceType::SoundEventScript;
+						else if(strct.name == "CWorldVisibility")
+							m_resourceType = ResourceType::WorldVisibility;
+					}
+				}
+				break;
 			}
-			break;
 		}
 		f.Seek(position +sizeof(uint32_t) *2);
 	}
@@ -198,7 +201,8 @@ std::shared_ptr<source2::resource::Block> resource::Resource::ConstructFromType(
 		return std::make_shared<KeyValuesOrNTRO>(BlockType::AGRP,"AnimationGroupResourceData_t");
 	else if(input == "PHYS")
 		return std::make_shared<KeyValuesOrNTRO>(BlockType::PHYS,"VPhysXAggregateData_t");
-	throw std::runtime_error{"Support for type " +input +" not yet implemented!"};
+	// throw std::runtime_error{"Support for type " +input +" not yet implemented!"};
+	return nullptr;
 }
 uint32_t resource::Resource::GetVersion() const {return m_version;}
 std::shared_ptr<source2::resource::ResourceData> resource::Resource::ConstructResourceType()

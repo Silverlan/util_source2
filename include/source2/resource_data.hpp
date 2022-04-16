@@ -49,7 +49,7 @@ namespace source2::resource
 	template<typename T0,typename T1>
 		std::optional<T1> cast_to_type(const T0 &v);
 
-	class ResourceData
+	class DLLUS2 ResourceData
 		: public Block
 	{
 	public:
@@ -59,7 +59,7 @@ namespace source2::resource
 		IKeyValueCollection *GetData();
 	};
 
-	struct NTROValue
+	struct DLLUS2 NTROValue
 		: public std::enable_shared_from_this<NTROValue>
 	{
 		NTROValue(DataType type=DataType::Unknown,bool pointer=false);
@@ -69,7 +69,7 @@ namespace source2::resource
 	};
 
 	using BinaryBlob = std::vector<uint8_t>;
-	struct NTROArray
+	struct DLLUS2 NTROArray
 		: public NTROValue
 	{
 	public:
@@ -95,7 +95,7 @@ namespace source2::resource
 		T value;
 	};
 
-	class IKeyValueCollection
+	class DLLUS2 IKeyValueCollection
 		: public std::enable_shared_from_this<IKeyValueCollection>
 	{
 	public:
@@ -126,7 +126,7 @@ namespace source2::resource
 	template<typename T>
 		std::optional<T> cast_to_type(NTROValue &v0);
 
-	class NTROStruct
+	class DLLUS2 NTROStruct
 		: public IKeyValueCollection
 	{
 	public:
@@ -195,7 +195,7 @@ namespace source2::resource
 		std::unordered_map<std::string,std::shared_ptr<NTROValue>> m_contents;
 	};
 
-	class NTRO
+	class DLLUS2 NTRO
 		: public ResourceData
 	{
 	public:
@@ -217,7 +217,7 @@ namespace source2::resource
 		);
 	};
 
-	class Panorama
+	class DLLUS2 Panorama
 		: public ResourceData
 	{
 	public:
@@ -236,7 +236,7 @@ namespace source2::resource
 		uint32_t m_crc32;
 	};
 
-	class Sound
+	class DLLUS2 Sound
 		: public ResourceData
 	{
 	public:
@@ -274,7 +274,7 @@ namespace source2::resource
 	};
 	std::string to_string(Sound::AudioFileType type);
 
-	class KeyValuesOrNTRO
+	class DLLUS2 KeyValuesOrNTRO
 		: public ResourceData
 	{
 	public:
@@ -295,7 +295,7 @@ namespace source2::resource
 
 	class EntityLump;
 	class Scene;
-	class World
+	class DLLUS2 World
 		: public KeyValuesOrNTRO
 	{
 	public:
@@ -309,7 +309,7 @@ namespace source2::resource
 	};
 
 	class Scene;
-	class WorldNode
+	class DLLUS2 WorldNode
 		: public KeyValuesOrNTRO
 	{
 	public:
@@ -319,7 +319,7 @@ namespace source2::resource
 
 	class SceneNode;
 	class Entity;
-	class Scene
+	class DLLUS2 Scene
 	{
 	public:
 		void Add(SceneNode &node);
@@ -331,7 +331,7 @@ namespace source2::resource
 		std::vector<std::shared_ptr<Entity>> m_entities;
 	};
 
-	class SceneNode
+	class DLLUS2 SceneNode
 		: public std::enable_shared_from_this<SceneNode>
 	{
 	public:
@@ -359,7 +359,7 @@ namespace source2::resource
 	};
 
 	class Mesh;
-	class MeshSceneNode
+	class DLLUS2 MeshSceneNode
 		: public SceneNode
 	{
 	public:
@@ -372,7 +372,7 @@ namespace source2::resource
 
 	class Model;
 	class Animation;
-	class ModelSceneNode
+	class DLLUS2 ModelSceneNode
 		: public SceneNode
 	{
 	public:
@@ -386,7 +386,7 @@ namespace source2::resource
 		std::unordered_map<std::string,std::string> m_skinMaterials;
 	};
 
-	struct EntityProperty
+	struct DLLUS2 EntityProperty
 	{
 		enum class Type : uint32_t
 		{
@@ -456,7 +456,7 @@ namespace source2::resource
 		}
 	};
 
-	class Entity
+	class DLLUS2 Entity
 		: public std::enable_shared_from_this<Entity>
 	{
 	public:
@@ -486,7 +486,7 @@ namespace source2::resource
 		std::unordered_map<uint32_t,EntityProperty> m_properties = {};
 	};
 
-	class EntityLump
+	class DLLUS2 EntityLump
 		: public KeyValuesOrNTRO
 	{
 	public:
@@ -497,25 +497,25 @@ namespace source2::resource
 		void ReadTypedValue(DataStream &ds,uint32_t keyHash,const std::optional<std::string> &keyName,std::unordered_map<uint32_t,EntityProperty> &properties) const;
 	};
 
-	class SoundStackScript
+	class DLLUS2 SoundStackScript
 		: public ResourceData
 	{
 
 	};
 	
-	class ParticleSystem
+	class DLLUS2 ParticleSystem
 		: public ResourceData
 	{
 
 	};
 
-	struct FrameBone
+	struct DLLUS2 FrameBone
 	{
 		Vector3 position = {};
 		Quat rotation = uquat::identity();
 	};
 
-	class Frame
+	class DLLUS2 Frame
 	{
 	public:
 		void SetPosition(const std::string &bone,const Vector3 &pos);
@@ -561,7 +561,7 @@ namespace source2::resource
 		CCompressedStaticVector4D,
 		CCompressedFullVector4D
 	};
-	class Animation
+	class DLLUS2 Animation
 		: public ResourceData
 	{
 	public:
@@ -590,7 +590,7 @@ namespace source2::resource
 		std::vector<std::shared_ptr<Frame>> m_frames = {};
 	};
 	
-	class AnimationGroup
+	class DLLUS2 AnimationGroup
 	{
 	public:
 		AnimationGroup(ResourceData &animationData);
@@ -601,14 +601,14 @@ namespace source2::resource
 		IKeyValueCollection *m_data = nullptr;
 	};
 
-	class AnimDecoder
+	class DLLUS2 AnimDecoder
 	{
 	public:
 		static int32_t GetSize(AnimDecoderType t);
 		static AnimDecoderType FromString(const std::string &str);
 	};
 
-	class Bone
+	class DLLUS2 Bone
 		: public std::enable_shared_from_this<Bone>
 	{
 	public:
@@ -629,7 +629,7 @@ namespace source2::resource
 		Quat m_rotation = uquat::identity();
 	};
 
-	class Skeleton
+	class DLLUS2 Skeleton
 		: public ResourceData
 	{
 	public:
@@ -649,7 +649,7 @@ namespace source2::resource
 		std::vector<int32_t> m_remappingTableStarts = {};
 	};
 
-	class Mesh
+	class DLLUS2 Mesh
 		: public std::enable_shared_from_this<Mesh>
 	{
 	public:
@@ -671,7 +671,7 @@ namespace source2::resource
 
 	};
 
-	class Skin
+	class DLLUS2 Skin
 	{
 	public:
 		Skin(const std::string &name,std::vector<std::string> &&materials);
@@ -682,7 +682,7 @@ namespace source2::resource
 		std::vector<std::string> m_materials;
 	};
 
-	class Model
+	class DLLUS2 Model
 		: public KeyValuesOrNTRO
 	{
 	public:
@@ -702,7 +702,7 @@ namespace source2::resource
 		Resource &m_resource;
 	};
 
-	class Material
+	class DLLUS2 Material
 		: public KeyValuesOrNTRO
 	{
 	public:
@@ -744,7 +744,7 @@ namespace source2::resource
 		std::unordered_map<std::string,std::string> m_stringAttributes;
 	};
 
-	class SoundEventScript
+	class DLLUS2 SoundEventScript
 		: public NTRO
 	{
 	public:
@@ -755,7 +755,7 @@ namespace source2::resource
 		std::unordered_map<std::string,std::string> m_values {};
 	};
 
-	class Texture
+	class DLLUS2 Texture
 		: public ResourceData
 	{
 	public:
@@ -822,7 +822,7 @@ namespace source2::resource
 		DOUBLE_ZERO = 17,
 		DOUBLE_ONE = 18,
 	};
-	std::string to_string(KVType type);
+	DLLUS2 std::string to_string(KVType type);
 
 	enum class KVFlag : uint8_t
 	{
@@ -831,7 +831,7 @@ namespace source2::resource
 		DeferredResource
 	};
 
-	class KVValue
+	class DLLUS2 KVValue
 		: public std::enable_shared_from_this<KVValue>
 	{
 	public:
@@ -909,7 +909,7 @@ namespace source2::resource
 		return {};
 	}
 
-	class KVObject
+	class DLLUS2 KVObject
 		: public std::enable_shared_from_this<KVObject>,
 		public IKeyValueCollection
 	{
@@ -970,7 +970,7 @@ namespace source2::resource
 		uint32_t m_count = 0u;
 	};
 
-	class BinaryKV3
+	class DLLUS2 BinaryKV3
 		: public ResourceData
 	{
 	public:

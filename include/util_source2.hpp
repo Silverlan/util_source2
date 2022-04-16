@@ -29,6 +29,7 @@ SOFTWARE.
 #include <memory>
 #include <sstream>
 #include <functional>
+#include "util_source2_definitions.hpp"
 
 class VFilePtrInternal;
 namespace ufile {struct IFile;};
@@ -53,7 +54,7 @@ namespace source2
 		AGRP,
 		PHYS
 	};
-	std::string to_string(BlockType blockType);
+	DLLUS2 std::string to_string(BlockType blockType);
 
 	enum VTexFormat : uint8_t
 	{
@@ -87,7 +88,7 @@ namespace source2
 		ATI1N = 27,
 		BGRA8888 = 28
 	};
-	std::string to_string(VTexFormat blockType);
+	DLLUS2 std::string to_string(VTexFormat blockType);
 
 	enum class VTexFlags : uint16_t
 	{
@@ -100,7 +101,7 @@ namespace source2
 		VOLUME_TEXTURE = 0x00000020,
 		TEXTURE_ARRAY = 0x00000040
 	};
-	std::string to_string(VTexFlags blockType);
+	DLLUS2 std::string to_string(VTexFlags blockType);
 
 	enum class VTexExtraData : uint32_t
 	{
@@ -110,7 +111,7 @@ namespace source2
 		FILL_TO_POWER_OF_TWO = 3,
 		COMPRESSED_MIP_SIZE = 4
 	};
-	std::string to_string(VTexExtraData blockType);
+	DLLUS2 std::string to_string(VTexExtraData blockType);
 
 	enum class ResourceType : uint16_t
 	{
@@ -147,7 +148,7 @@ namespace source2
 		ParticleSnapshot,
 		Map
 	};
-	std::string to_string(ResourceType blockType);
+	DLLUS2 std::string to_string(ResourceType blockType);
 
 	enum class REDIStruct : uint8_t
 	{
@@ -164,11 +165,11 @@ namespace source2
 
 		Count
 	};
-	std::string to_string(REDIStruct blockType);
+	DLLUS2 std::string to_string(REDIStruct blockType);
 
 	namespace resource {class Resource;};
-	std::shared_ptr<resource::Resource> load_resource(ufile::IFile &file,const std::function<std::unique_ptr<ufile::IFile>(const std::string&)> &fAssetLoader=nullptr);
-	void debug_print(resource::Resource &resource,std::stringstream &ss);
+	DLLUS2 std::shared_ptr<resource::Resource> load_resource(ufile::IFile &file,const std::function<std::unique_ptr<ufile::IFile>(const std::string&)> &fAssetLoader=nullptr);
+	DLLUS2 void debug_print(resource::Resource &resource,std::stringstream &ss);
 };
 
 #endif

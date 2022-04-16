@@ -54,7 +54,7 @@ project(${PROJ_NAME} CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(ENABLE_STATIC_LIBRARY_FLAG 0)
+option(UTIL_SOURCE2_STATIC "Build as static library?" ON)
 # set(PRECOMPILED_HEADER "stdafx")
 
 add_include_dir(glm)
@@ -69,7 +69,19 @@ set(DEFINITIONS)
 
 ##### CONFIGURATION #####
 
-set(LIB_TYPE STATIC)
+if(${UTIL_UDM_STATIC})
+	set(LIB_TYPE STATIC)
+else()
+	set(LIB_TYPE SHARED)
+	add_definitions(-DUS2_SHARED)
+	add_definitions(-DUS2_EXPORT)
+	
+	add_definitions(-DSHUTIL_STATIC)
+	add_definitions(-DMUTIL_STATIC)
+	add_definitions(-DVFILESYSTEM_STATIC)
+endif()
+
+
 if(ENABLE_STATIC_LIBRARY_FLAG)
 	option(CONFIG_STATIC_LIBRARY "Build as static library?" OFF)
 endif()

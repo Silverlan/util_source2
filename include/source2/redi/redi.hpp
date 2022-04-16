@@ -34,7 +34,7 @@ SOFTWARE.
 
 namespace source2::resource
 {
-	class REDIBlock
+	class DLLUS2 REDIBlock
 		: public Block
 	{
 	public:
@@ -42,7 +42,7 @@ namespace source2::resource
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const=0;
 	};
 
-	class InputDependencies
+	class DLLUS2 InputDependencies
 		: public REDIBlock
 	{
 	public:
@@ -61,11 +61,11 @@ namespace source2::resource
 		std::vector<InputDependency> m_inputDependencies {};
 	};
 
-	class AdditionalInputDependencies
+	class DLLUS2 AdditionalInputDependencies
 		: public InputDependencies
 	{};
 
-	class ArgumentDependencies
+	class DLLUS2 ArgumentDependencies
 		: public REDIBlock
 	{
 	public:
@@ -84,7 +84,7 @@ namespace source2::resource
 		std::vector<ArgumentDependency> m_argumentDependencies {};
 	};
 
-	class SpecialDependencies
+	class DLLUS2 SpecialDependencies
 		: public REDIBlock
 	{
 	public:
@@ -105,7 +105,7 @@ namespace source2::resource
 		std::vector<SpecialDependency> m_specialDependencies {};
 	};
 
-	class CustomDependencies
+	class DLLUS2 CustomDependencies
 		: public REDIBlock
 	{
 	public:
@@ -113,7 +113,7 @@ namespace source2::resource
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 	};
 
-	class AdditionalRelatedFiles
+	class DLLUS2 AdditionalRelatedFiles
 		: public REDIBlock
 	{
 	public:
@@ -130,7 +130,7 @@ namespace source2::resource
 		std::vector<AdditionalRelatedFile> m_additionalRelatedFiles {};
 	};
 
-	class ChildResourceList
+	class DLLUS2 ChildResourceList
 		: public REDIBlock
 	{
 	public:
@@ -147,7 +147,7 @@ namespace source2::resource
 		std::vector<ReferenceInfo> m_references {};
 	};
 
-	class ExtraIntData
+	class DLLUS2 ExtraIntData
 		: public REDIBlock
 	{
 	public:
@@ -164,7 +164,7 @@ namespace source2::resource
 		std::vector<EditIntData> m_editIntData {};
 	};
 
-	class ExtraFloatData
+	class DLLUS2 ExtraFloatData
 		: public REDIBlock
 	{
 	public:
@@ -181,7 +181,7 @@ namespace source2::resource
 		std::vector<EditFloatData> m_editFloatData {};
 	};
 
-	class ExtraStringData
+	class DLLUS2 ExtraStringData
 		: public REDIBlock
 	{
 	public:

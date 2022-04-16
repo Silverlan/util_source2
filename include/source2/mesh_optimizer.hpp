@@ -26,6 +26,7 @@ SOFTWARE.
 #ifndef __SOURCE2_MESH_OPTIMIZER_HPP__
 #define __SOURCE2_MESH_OPTIMIZER_HPP__
 
+#include "util_source2_definitions.hpp"
 #include <cinttypes>
 #include <vector>
 #include <string>
@@ -36,7 +37,7 @@ SOFTWARE.
 class DataStream;
 namespace source2::resource
 {
-	class MeshOptimizerVertexDecoder
+	class DLLUS2 MeshOptimizerVertexDecoder
 	{
 	public:
 		static constexpr uint8_t VertexHeader = 0xa0;
@@ -56,7 +57,7 @@ namespace source2::resource
 		static std::vector<uint8_t> DecodeVertexBuffer(int vertexCount, int vertexSize, const std::vector<uint8_t> &vertexBuffer);
 	};
 
-	class MeshOptimizerIndexDecoder
+	class DLLUS2 MeshOptimizerIndexDecoder
 	{
 	public:
 		static constexpr uint8_t IndexHeader = 0xe0;

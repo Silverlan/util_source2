@@ -35,7 +35,7 @@ SOFTWARE.
 namespace source2::resource
 {
 	class REDIBlock;
-	class ResourceEditInfo
+	class DLLUS2 ResourceEditInfo
 		: public Block
 	{
 	public:
@@ -49,7 +49,7 @@ namespace source2::resource
 		std::array<std::shared_ptr<REDIBlock>,umath::to_integral(REDIStruct::Count)> m_structs = {};
 	};
 
-	class ResourceExtRefList
+	class DLLUS2 ResourceExtRefList
 		: public Block
 	{
 	public:
@@ -188,7 +188,7 @@ namespace source2::resource
 		V208 = 131,
 		V408 = 132,
 	};
-	std::string to_string(DXGI_FORMAT format);
+	DLLUS2 std::string to_string(DXGI_FORMAT format);
 
 	enum class DataType : int16_t
 	{
@@ -220,7 +220,7 @@ namespace source2::resource
 		Vector4D_44 = 44
 	};
 
-	class VBIB
+	class DLLUS2 VBIB
 		: public Block
 	{
 	public:
@@ -259,14 +259,14 @@ namespace source2::resource
 		std::vector<IndexBuffer> m_indexBuffers;
 	};
 
-	class MBUF
+	class DLLUS2 MBUF
 		: public VBIB
 	{
 	public:
 		virtual BlockType GetType() const override;
 	};
 
-	class VXVS
+	class DLLUS2 VXVS
 		: public Block
 	{
 	public:
@@ -275,7 +275,7 @@ namespace source2::resource
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 	};
 
-	class SNAP
+	class DLLUS2 SNAP
 		: public Block
 	{
 	public:
@@ -284,7 +284,7 @@ namespace source2::resource
 		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
 	};
 
-	class ResourceIntrospectionManifest
+	class DLLUS2 ResourceIntrospectionManifest
 		: public Block
 	{
 	public:
@@ -341,7 +341,7 @@ namespace source2::resource
 		std::vector<ResourceDiskStruct> m_referencedStructs {};
 		std::vector<ResourceDiskEnum> m_referencedEnums {};
 	};
-	std::string to_string(DataType type);
+	DLLUS2 std::string to_string(DataType type);
 };
 
 #endif

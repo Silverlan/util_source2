@@ -6,18 +6,13 @@
 */
 
 #include "util_source2.hpp"
+#include "util_source2_definitions.hpp"
 #include "source2/resource.hpp"
 #include "source2/resource_data.hpp"
 #include <sharedutils/util.h>
 #include <sharedutils/util_file.h>
 #include <type_traits>
 #include <fsys/ifile.hpp>
-
-#ifdef __linux__
-	#define DLLS2 __attribute__((visibility("default")))
-#else
-	#define DLLS2  __declspec(dllexport)   // export DLL information
-#endif
 
 struct ResourceWrapper
 {
@@ -53,15 +48,15 @@ static std::unique_ptr<ResourceWrapper> load_resource(const std::string &fileNam
 using FrameBoneIterator = util::base_type<std::invoke_result_t<decltype(&source2::resource::Frame::GetBones),source2::resource::Frame>>::const_iterator;
 using S2Anim = std::shared_ptr<source2::resource::Animation>;
 extern "C" {
-	DLLS2 ResourceWrapper *us2_open_resource(const char *fileName)
+	DLLUS2 ResourceWrapper *us2_open_resource(const char *fileName)
 	{
 		auto res = load_resource(fileName,{});
 		if(!res)
 			return nullptr;
 		return res.release();
 	}
-	DLLS2 void us2_close_resource(ResourceWrapper *res) {delete res;}
-	DLLS2 S2Anim **us2_animation_group_load(ResourceWrapper *res,uint32_t *outNumAnims)
+	DLLUS2 void us2_close_resource(ResourceWrapper *res) {delete res;}
+	DLLUS2 S2Anim **us2_animation_group_load(ResourceWrapper *res,uint32_t *outNumAnims)
 	{
 		auto *dataBlock = dynamic_cast<source2::resource::ResourceData*>(res->resource->FindBlock(source2::BlockType::DATA));
 		auto data = dataBlock ? dataBlock->GetData() : nullptr;
@@ -94,25 +89,25 @@ extern "C" {
 			r[idx++] = new S2Anim{anim};
 		return r;
 	}
-	DLLS2 void us2_animation_group_destroy(S2Anim **anims,uint32_t numAnims)
+	DLLUS2 void us2_animation_group_destroy(S2Anim **anims,uint32_t numAnims)
 	{
 		for(auto i=decltype(numAnims){0u};i<numAnims;++i)
 			delete anims[i];
 		delete anims;
 	}
-	DLLS2 const char *us2_animation_get_name(source2::resource::Animation *animation)
+	DLLUS2 const char *us2_animation_get_name(source2::resource::Animation *animation)
 	{
 		return animation->GetName().c_str();
 	}
-	DLLS2 float us2_animation_get_fps(source2::resource::Animation *animation)
+	DLLUS2 float us2_animation_get_fps(source2::resource::Animation *animation)
 	{
 		return animation->GetFPS();
 	}
-	DLLS2 uint32_t us2_animation_get_frame_count(source2::resource::Animation *animation)
+	DLLUS2 uint32_t us2_animation_get_frame_count(source2::resource::Animation *animation)
 	{
 		return animation->GetFrames().size();
 	}
-	DLLS2 source2::resource::Frame *us2_animation_get_frame(source2::resource::Animation *animation,uint32_t idx)
+	DLLUS2 source2::resource::Frame *us2_animation_get_frame(source2::resource::Animation *animation,uint32_t idx)
 	{
 		auto &frames = animation->GetFrames();
 		if(idx >= frames.size())
@@ -120,11 +115,11 @@ extern "C" {
 		return frames[idx].get();
 	}
 	
-	DLLS2 uint32_t us2_animation_frame_get_bone_count(source2::resource::Frame *frame)
+	DLLUS2 uint32_t us2_animation_frame_get_bone_count(source2::resource::Frame *frame)
 	{
 		return frame->GetBones().size();
 	}
-	DLLS2 FrameBoneIterator *us2_animation_frame_bone_iterator_create(source2::resource::Frame *frame)
+	DLLUS2 FrameBoneIterator *us2_animation_frame_bone_iterator_create(source2::resource::Frame *frame)
 	{
 		auto &bones = frame->GetBones();
 		if(bones.empty())
@@ -132,20 +127,20 @@ extern "C" {
 		auto it = bones.begin();
 		return new FrameBoneIterator{it};
 	}
-	DLLS2 void us2_animation_frame_bone_iterator_destroy(FrameBoneIterator *it) {delete it;}
-	DLLS2 bool us2_animation_frame_bone_iterator_next(source2::resource::Frame *frame,FrameBoneIterator *it)
+	DLLUS2 void us2_animation_frame_bone_iterator_destroy(FrameBoneIterator *it) {delete it;}
+	DLLUS2 bool us2_animation_frame_bone_iterator_next(source2::resource::Frame *frame,FrameBoneIterator *it)
 	{
 		++(*it);
 		return *it != frame->GetBones().end();
 	}
-	DLLS2 const char *us2_animation_frame_bone_iterator_get_name(FrameBoneIterator *it) {return (*it)->first.c_str();}
-	DLLS2 const source2::resource::FrameBone *us2_animation_frame_bone_iterator_get_bone(FrameBoneIterator *it) {return &(*it)->second;}
+	DLLUS2 const char *us2_animation_frame_bone_iterator_get_name(FrameBoneIterator *it) {return (*it)->first.c_str();}
+	DLLUS2 const source2::resource::FrameBone *us2_animation_frame_bone_iterator_get_bone(FrameBoneIterator *it) {return &(*it)->second;}
 
-	DLLS2 void us2_animation_frame_bone_get_position(const source2::resource::FrameBone *frameBone,float *outPos)
+	DLLUS2 void us2_animation_frame_bone_get_position(const source2::resource::FrameBone *frameBone,float *outPos)
 	{
 		memcpy(outPos,&frameBone->position,sizeof(frameBone->position));
 	}
-	DLLS2 void us2_animation_frame_bone_get_rotation(const source2::resource::FrameBone *frameBone,float *outRot)
+	DLLUS2 void us2_animation_frame_bone_get_rotation(const source2::resource::FrameBone *frameBone,float *outRot)
 	{
 		memcpy(outRot,&frameBone->rotation,sizeof(frameBone->rotation));
 	}

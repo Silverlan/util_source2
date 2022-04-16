@@ -36,7 +36,7 @@ namespace source2::resource
 	class ResourceData;
 	class ResourceIntrospectionManifest;
 	class ResourceExtRefList;
-	class Resource
+	class DLLUS2 Resource
 	{
 	public:
 		Resource(const std::function<std::unique_ptr<ufile::IFile>(const std::string&)> &assetFileLoader);
