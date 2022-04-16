@@ -12,6 +12,20 @@ inputs:
     description: 'Library directory'
     required: true
     default: 'external_libs/util_source2'
+  build_shared:
+    description: 'Build as shared library?'
+    required: true
+    default: '0'
+outputs:
+  include_directory:
+    description: 'The include directory for this library'
+    value: ${{ steps.write-outputs.outputs.include-directory }}
+  library_file_path:
+    description: 'The path (including filename and extension) of the generated library'
+    value: ${{ steps.write-outputs.outputs.library-file-path }}
+  binary_file_path:
+    description: 'The path (including filename and extension) of the generated binary'
+    value: ${{ steps.write-outputs.outputs.binary-file-path }}
 runs:
   using: "composite"
   steps:
@@ -31,10 +45,14 @@ runs:
             cmake_var: 'DEPENDENCY_UTIL_SOURCE2_INCLUDE'
             dir: 'external_libs'
             
-    - id: print-pwd
-      shell: bash
-      run: |
-        echo "PWD: $PWD"
+    - uses: ChristopherHX/conditional@b4a9649204f81002ec9a4ef7d4bf7d6b2ab7fa55
+      name: Define CMake Variables
+      with:
+        if: ${{inputs.build_shared == '1'}}
+        step: |
+          uses: Silverlan/common_actions/define_cmake_var@main
+          with:
+            cmake_var: ' -DMATHUTIL_STATIC=ON -DSHAREDUTILS_STATIC=ON -DVFILESYSTEM_STATIC=ON -DUS2_SHARED=ON -DLINK_COMMON_LIBS_STATIC=ON'
          
     - name: Download submodule - lz4
       uses: Silverlan/common_actions/build_submodule@main
@@ -46,6 +64,18 @@ runs:
         cmake_var: 'DEPENDENCY_LZ4_INCLUDE'
         cmake_var_lib: 'DEPENDENCY_LZ4_LIBRARY'
         include_dir: 'lib'
+        
+    - id: update-shared-state
+      shell: bash
+      run: |
+        extLibShared='1'
+        udmLibStatic='1'
+        if [[ "${{ inputs.build_shared }}" == "1" ]]; then
+          extLibShared='0'
+          udmLibStatic='0'
+        fi
+        echo "::set-output name=ext-build-shared::$(echo $extLibShared)"
+        echo "::set-output name=udm-build-static::$(echo $udmLibStatic)"
             
     - name: Download common external libs
       uses: Silverlan/common_actions/get_common_external_libs@main
@@ -59,4 +89,12 @@ runs:
         build_target: util_source2
         build_dir: '${{ matrix.config.build_dir }}/${{ inputs.dir }}'
         cmake_script_location: '${{ inputs.dir }}'
-        static_library: '1'
+        static_library: '${{ steps.update-shared-state.outputs.udm-build-static }}'
+        
+    - name: Write outputs
+      shell: bash
+      id: write-outputs
+      run: |
+        echo "::set-output name=include-directory::$(echo ${{ inputs.root_dir }}/${{ inputs.dir }}/include)"
+        echo "::set-output name=library-file-path::$(echo ${{ steps.build.outputs.library_file_path }})"
+        echo "::set-output name=binary-file-path::$(echo ${{ steps.build.outputs.binary_file_path }})"
