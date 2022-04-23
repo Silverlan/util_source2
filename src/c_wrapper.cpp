@@ -13,6 +13,7 @@
 #include <sharedutils/util_file.h>
 #include <type_traits>
 #include <fsys/ifile.hpp>
+#include <cstring>
 
 struct ResourceWrapper
 {
@@ -138,10 +139,10 @@ extern "C" {
 
 	DLLUS2 void us2_animation_frame_bone_get_position(const source2::resource::FrameBone *frameBone,float *outPos)
 	{
-		memcpy(outPos,&frameBone->position,sizeof(frameBone->position));
+		std::memcpy(outPos,&frameBone->position,sizeof(frameBone->position));
 	}
 	DLLUS2 void us2_animation_frame_bone_get_rotation(const source2::resource::FrameBone *frameBone,float *outRot)
 	{
-		memcpy(outRot,&frameBone->rotation,sizeof(frameBone->rotation));
+		std::memcpy(outRot,&frameBone->rotation,sizeof(frameBone->rotation));
 	}
 }
