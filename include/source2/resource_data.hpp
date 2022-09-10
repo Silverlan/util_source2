@@ -844,7 +844,7 @@ namespace source2::resource
 		template<typename T>
 			std::optional<T> GetObjectValue()
 		{
-			if constexpr(std::is_same_v<T,nullptr_t>)
+            if constexpr(std::is_same_v<T,std::nullptr_t>)
 				return {};
 			else if constexpr(std::is_same_v<T,const std::string*> || std::is_same_v<T,std::string*>)
 			{
