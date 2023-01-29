@@ -1,13 +1,13 @@
 #include "murmur_hash2.hpp"
 
-uint32_t source2::murmur2::hash(const std::string &data,uint32_t seed)
+uint32_t source2::murmur2::hash(const std::string &data, uint32_t seed)
 {
 	if(data.empty())
-		return hash(nullptr,0,seed);
-	return hash(reinterpret_cast<const uint8_t*>(data.data()),data.length(),seed);
+		return hash(nullptr, 0, seed);
+	return hash(reinterpret_cast<const uint8_t *>(data.data()), data.length(), seed);
 }
-uint32_t source2::murmur2::hash(const std::vector<uint8_t> &data,uint32_t seed) {return hash(data.data(),data.size(),seed);}
-uint32_t source2::murmur2::hash(const uint8_t *key,size_t len,uint32_t seed)
+uint32_t source2::murmur2::hash(const std::vector<uint8_t> &data, uint32_t seed) { return hash(data.data(), data.size(), seed); }
+uint32_t source2::murmur2::hash(const uint8_t *key, size_t len, uint32_t seed)
 {
 	if(key == nullptr)
 		return 0;
@@ -25,11 +25,10 @@ uint32_t source2::murmur2::hash(const uint8_t *key,size_t len,uint32_t seed)
 
 	// Mix 4 bytes at a time into the hash
 
-	const unsigned char * data = (const unsigned char *)key;
+	const unsigned char *data = (const unsigned char *)key;
 
-	while(len >= 4)
-	{
-		uint32_t k = *(uint32_t*)data;
+	while(len >= 4) {
+		uint32_t k = *(uint32_t *)data;
 
 		k *= m;
 		k ^= k >> r;
@@ -44,11 +43,13 @@ uint32_t source2::murmur2::hash(const uint8_t *key,size_t len,uint32_t seed)
 
 	// Handle the last few bytes of the input array
 
-	switch(len)
-	{
-	case 3: h ^= data[2] << 16;
-	case 2: h ^= data[1] << 8;
-	case 1: h ^= data[0];
+	switch(len) {
+	case 3:
+		h ^= data[2] << 16;
+	case 2:
+		h ^= data[1] << 8;
+	case 1:
+		h ^= data[0];
 		h *= m;
 	};
 

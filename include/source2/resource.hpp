@@ -30,16 +30,16 @@ SOFTWARE.
 #include <vector>
 #include <string>
 
-namespace ufile {struct IFile;};
-namespace source2::resource
-{
+namespace ufile {
+	struct IFile;
+};
+namespace source2::resource {
 	class ResourceData;
 	class ResourceIntrospectionManifest;
 	class ResourceExtRefList;
-	class DLLUS2 Resource
-	{
-	public:
-		Resource(const std::function<std::unique_ptr<ufile::IFile>(const std::string&)> &assetFileLoader);
+	class DLLUS2 Resource {
+	  public:
+		Resource(const std::function<std::unique_ptr<ufile::IFile>(const std::string &)> &assetFileLoader);
 		std::unique_ptr<ufile::IFile> OpenAssetFile(const std::string &path) const;
 		std::shared_ptr<Resource> LoadResource(const std::string &path) const;
 
@@ -58,11 +58,11 @@ namespace source2::resource
 		const ResourceExtRefList *GetExternalReferences() const;
 
 		uint32_t GetVersion() const;
-	private:
+	  private:
 		static bool IsHandledResourceType(ResourceType type);
 		ResourceType m_resourceType = ResourceType::Unknown;
 		std::vector<std::shared_ptr<Block>> m_blocks = {};
-		std::function<std::unique_ptr<ufile::IFile>(const std::string&)> m_assetFileLoader = nullptr;
+		std::function<std::unique_ptr<ufile::IFile>(const std::string &)> m_assetFileLoader = nullptr;
 		uint16_t m_version = 0u;
 	};
 };

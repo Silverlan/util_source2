@@ -32,42 +32,35 @@ SOFTWARE.
 #include <memory>
 #include <mathutil/umath.h>
 
-namespace source2::resource
-{
+namespace source2::resource {
 	class REDIBlock;
-	class DLLUS2 ResourceEditInfo
-		: public Block
-	{
-	public:
+	class DLLUS2 ResourceEditInfo : public Block {
+	  public:
 		static std::shared_ptr<REDIBlock> ConstructStruct(REDIStruct id);
 
 		REDIBlock &GetStruct(REDIStruct type);
 		virtual BlockType GetType() const override;
-		virtual void Read(const Resource &resource,ufile::IFile &f) override;
-		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
-	private:
-		std::array<std::shared_ptr<REDIBlock>,umath::to_integral(REDIStruct::Count)> m_structs = {};
+		virtual void Read(const Resource &resource, ufile::IFile &f) override;
+		virtual void DebugPrint(std::stringstream &ss, const std::string &t = "") const override;
+	  private:
+		std::array<std::shared_ptr<REDIBlock>, umath::to_integral(REDIStruct::Count)> m_structs = {};
 	};
 
-	class DLLUS2 ResourceExtRefList
-		: public Block
-	{
-	public:
-		struct ResourceReferenceInfo
-		{
+	class DLLUS2 ResourceExtRefList : public Block {
+	  public:
+		struct ResourceReferenceInfo {
 			uint64_t id = 0;
 			std::string name;
 		};
 		virtual BlockType GetType() const override;
-		virtual void Read(const Resource &resource,ufile::IFile &f) override;
-		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
+		virtual void Read(const Resource &resource, ufile::IFile &f) override;
+		virtual void DebugPrint(std::stringstream &ss, const std::string &t = "") const override;
 		const std::vector<ResourceReferenceInfo> &GetResourceReferenceInfos() const;
-	private:
+	  private:
 		std::vector<ResourceReferenceInfo> m_resourceReferenceInfos = {};
 	};
 
-	enum class DXGI_FORMAT : uint32_t
-	{
+	enum class DXGI_FORMAT : uint32_t {
 		UNKNOWN = 0,
 		R32G32B32A32_TYPELESS = 1,
 		R32G32B32A32_FLOAT = 2,
@@ -190,8 +183,7 @@ namespace source2::resource
 	};
 	DLLUS2 std::string to_string(DXGI_FORMAT format);
 
-	enum class DataType : int16_t
-	{
+	enum class DataType : int16_t {
 		Unknown = 0,
 		Struct = 1,
 		Enum = 2, // TODO: not verified with resourceinfo
@@ -220,78 +212,63 @@ namespace source2::resource
 		Vector4D_44 = 44
 	};
 
-	class DLLUS2 VBIB
-		: public Block
-	{
-	public:
-		struct VertexAttribute
-		{
+	class DLLUS2 VBIB : public Block {
+	  public:
+		struct VertexAttribute {
 			std::string name;
 			DXGI_FORMAT type = DXGI_FORMAT::UNKNOWN;
 			uint32_t offset = 0;
 		};
 
-		struct VertexBuffer
-		{
+		struct VertexBuffer {
 			uint32_t count = 0;
 			uint32_t size = 0;
 			std::vector<VertexAttribute> attributes;
 			std::vector<uint8_t> buffer;
 
-			void ReadVertexAttribute(uint32_t offset, const VertexAttribute &attribute,std::vector<float> &outData) const;
+			void ReadVertexAttribute(uint32_t offset, const VertexAttribute &attribute, std::vector<float> &outData) const;
 		};
 
-		struct IndexBuffer
-		{
+		struct IndexBuffer {
 			uint32_t count = 0;
 			uint32_t size = 0;
 			std::vector<uint8_t> buffer;
 		};
 
 		virtual BlockType GetType() const override;
-		virtual void Read(const Resource &resource,ufile::IFile &f) override;
-		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
+		virtual void Read(const Resource &resource, ufile::IFile &f) override;
+		virtual void DebugPrint(std::stringstream &ss, const std::string &t = "") const override;
 		const std::vector<VertexBuffer> &GetVertexBuffers() const;
 		const std::vector<IndexBuffer> &GetIndexBuffers() const;
-	private:
-		void ReadVertexAttribute(uint32_t offset, const VertexBuffer &vertexBuffer, const VertexAttribute &attribute,std::vector<float> &outData);
+	  private:
+		void ReadVertexAttribute(uint32_t offset, const VertexBuffer &vertexBuffer, const VertexAttribute &attribute, std::vector<float> &outData);
 		std::vector<VertexBuffer> m_vertexBuffers;
 		std::vector<IndexBuffer> m_indexBuffers;
 	};
 
-	class DLLUS2 MBUF
-		: public VBIB
-	{
-	public:
+	class DLLUS2 MBUF : public VBIB {
+	  public:
 		virtual BlockType GetType() const override;
 	};
 
-	class DLLUS2 VXVS
-		: public Block
-	{
-	public:
+	class DLLUS2 VXVS : public Block {
+	  public:
 		virtual BlockType GetType() const override;
-		virtual void Read(const Resource &resource,ufile::IFile &f) override;
-		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
+		virtual void Read(const Resource &resource, ufile::IFile &f) override;
+		virtual void DebugPrint(std::stringstream &ss, const std::string &t = "") const override;
 	};
 
-	class DLLUS2 SNAP
-		: public Block
-	{
-	public:
+	class DLLUS2 SNAP : public Block {
+	  public:
 		virtual BlockType GetType() const override;
-		virtual void Read(const Resource &resource,ufile::IFile &f) override;
-		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
+		virtual void Read(const Resource &resource, ufile::IFile &f) override;
+		virtual void DebugPrint(std::stringstream &ss, const std::string &t = "") const override;
 	};
 
-	class DLLUS2 ResourceIntrospectionManifest
-		: public Block
-	{
-	public:
-		struct ResourceDiskStruct
-		{
-			struct Field
-			{
+	class DLLUS2 ResourceIntrospectionManifest : public Block {
+	  public:
+		struct ResourceDiskStruct {
+			struct Field {
 				std::string fieldName;
 				uint16_t count = 0;
 				uint16_t diskOffset = 0;
@@ -312,10 +289,8 @@ namespace source2::resource
 			std::vector<Field> fieldIntrospection;
 		};
 
-		struct ResourceDiskEnum
-		{
-			struct Value
-			{
+		struct ResourceDiskEnum {
+			struct Value {
 				std::string enumValueName;
 				int32_t enumValue = 0;
 			};
@@ -328,13 +303,13 @@ namespace source2::resource
 		};
 
 		virtual BlockType GetType() const override;
-		virtual void Read(const Resource &resource,ufile::IFile &f) override;
-		virtual void DebugPrint(std::stringstream &ss,const std::string &t="") const override;
+		virtual void Read(const Resource &resource, ufile::IFile &f) override;
+		virtual void DebugPrint(std::stringstream &ss, const std::string &t = "") const override;
 
 		uint32_t GetIntrospectionVersion() const;
 		const std::vector<ResourceDiskStruct> &GetReferencedStructs() const;
 		const std::vector<ResourceDiskEnum> &GetReferencedEnums() const;
-	private:
+	  private:
 		void ReadStructs(ufile::IFile &f);
 		void ReadEnums(ufile::IFile &f);
 		uint32_t m_introspectionVersion = 0;

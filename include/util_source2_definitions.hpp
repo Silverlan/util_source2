@@ -6,19 +6,19 @@
 #define __UTIL_SOURCE2_DEFINITIONS_HPP__
 
 #ifndef US2_SHARED
-	#define DLLUS2
+#define DLLUS2
 #elif US2_EXPORT
-	#ifdef __linux__
-		#define DLLUS2 __attribute__((visibility("default")))
-	#else
-		#define DLLUS2 __declspec(dllexport)
-	#endif
+#ifdef __linux__
+#define DLLUS2 __attribute__((visibility("default")))
 #else
-	#ifdef __linux__
-		#define DLLUS2
-	#else
-		#define DLLUS2 __declspec(dllimport)
-	#endif
+#define DLLUS2 __declspec(dllexport)
+#endif
+#else
+#ifdef __linux__
+#define DLLUS2
+#else
+#define DLLUS2 __declspec(dllimport)
+#endif
 #endif
 
 #endif

@@ -35,8 +35,8 @@ std::string resource::read_offset_string(ufile::IFile &f)
 	auto offset = f.Read<uint32_t>();
 	if(offset == 0)
 		return {};
-	f.Seek(currentOffset +offset);
+	f.Seek(currentOffset + offset);
 	auto str = f.ReadString(); // TODO: Encoding
-	f.Seek(currentOffset +sizeof(uint32_t));
+	f.Seek(currentOffset + sizeof(uint32_t));
 	return str;
 }

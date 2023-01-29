@@ -35,8 +35,7 @@ using namespace source2;
 
 std::string resource::to_string(DXGI_FORMAT format)
 {
-	switch(format)
-	{
+	switch(format) {
 	case DXGI_FORMAT::UNKNOWN:
 		return "UNKNOWN";
 	case DXGI_FORMAT::R32G32B32A32_TYPELESS:
@@ -281,8 +280,7 @@ std::string resource::to_string(DXGI_FORMAT format)
 
 std::string resource::to_string(DataType type)
 {
-	switch(type)
-	{
+	switch(type) {
 	case DataType::Unknown:
 		return "Unknown";
 	case DataType::Struct:
@@ -341,8 +339,7 @@ std::string resource::to_string(DataType type)
 
 std::shared_ptr<resource::REDIBlock> resource::ResourceEditInfo::ConstructStruct(REDIStruct id)
 {
-	switch (id)
-	{
+	switch(id) {
 	case REDIStruct::InputDependencies:
 		return std::make_shared<InputDependencies>();
 	case REDIStruct::AdditionalInputDependencies:
@@ -365,61 +362,55 @@ std::shared_ptr<resource::REDIBlock> resource::ResourceEditInfo::ConstructStruct
 		return std::make_shared<ExtraStringData>();
 	}
 
-	throw new std::invalid_argument{"Unknown struct in REDI block."};
+	throw new std::invalid_argument {"Unknown struct in REDI block."};
 }
 
-resource::REDIBlock &resource::ResourceEditInfo::GetStruct(REDIStruct type)
-{
-	return *m_structs.at(umath::to_integral(type));
-}
-BlockType resource::ResourceEditInfo::GetType() const {return BlockType::REDI;}
-void resource::ResourceEditInfo::Read(const Resource &resource,ufile::IFile &f)
+resource::REDIBlock &resource::ResourceEditInfo::GetStruct(REDIStruct type) { return *m_structs.at(umath::to_integral(type)); }
+BlockType resource::ResourceEditInfo::GetType() const { return BlockType::REDI; }
+void resource::ResourceEditInfo::Read(const Resource &resource, ufile::IFile &f)
 {
 	f.Seek(GetOffset());
-	for(auto i=decltype(m_structs.size()){0u};i<m_structs.size();++i)
-	{
+	for(auto i = decltype(m_structs.size()) {0u}; i < m_structs.size(); ++i) {
 		auto block = ConstructStruct(static_cast<REDIStruct>(i));
 		auto offset = f.Tell();
-		block->SetOffset(offset +f.Read<uint32_t>());
+		block->SetOffset(offset + f.Read<uint32_t>());
 		block->SetSize(f.Read<uint32_t>());
 		offset = f.Tell();
-		block->Read(resource,f);
+		block->Read(resource, f);
 		m_structs.at(i) = block;
 		f.Seek(offset);
 	}
 }
 
-void resource::ResourceEditInfo::DebugPrint(std::stringstream &ss,const std::string &t) const
+void resource::ResourceEditInfo::DebugPrint(std::stringstream &ss, const std::string &t) const
 {
-	ss<<t<<"ResourceEditInfo = {\n";
-	for(auto i=decltype(m_structs.size()){0u};i<m_structs.size();++i)
-	{
+	ss << t << "ResourceEditInfo = {\n";
+	for(auto i = decltype(m_structs.size()) {0u}; i < m_structs.size(); ++i) {
 		auto &strct = m_structs.at(i);
-		ss<<t<<"\t["<<to_string(strct->GetType())<<"] = {\n";
-		m_structs.at(i)->DebugPrint(ss,t +"\t\t");
-		ss<<t<<"\t}\n";
+		ss << t << "\t[" << to_string(strct->GetType()) << "] = {\n";
+		m_structs.at(i)->DebugPrint(ss, t + "\t\t");
+		ss << t << "\t}\n";
 	}
-	ss<<t<<"}\n";
+	ss << t << "}\n";
 }
 
 ///////////
 
-BlockType resource::ResourceExtRefList::GetType() const {return BlockType::RERL;}
-const std::vector<resource::ResourceExtRefList::ResourceReferenceInfo> &resource::ResourceExtRefList::GetResourceReferenceInfos() const {return m_resourceReferenceInfos;}
-void resource::ResourceExtRefList::Read(const Resource &resource,ufile::IFile &f)
+BlockType resource::ResourceExtRefList::GetType() const { return BlockType::RERL; }
+const std::vector<resource::ResourceExtRefList::ResourceReferenceInfo> &resource::ResourceExtRefList::GetResourceReferenceInfos() const { return m_resourceReferenceInfos; }
+void resource::ResourceExtRefList::Read(const Resource &resource, ufile::IFile &f)
 {
 	f.Seek(GetOffset());
 
 	auto offset = f.Read<uint32_t>();
 	auto size = f.Read<uint32_t>();
 
-	if (size == 0)
+	if(size == 0)
 		return;
 
-	f.Seek(f.Tell() +offset -sizeof(uint32_t) *2);
+	f.Seek(f.Tell() + offset - sizeof(uint32_t) * 2);
 	m_resourceReferenceInfos.resize(size);
-	for(auto i=decltype(size){0u};i<size;++i)
-	{
+	for(auto i = decltype(size) {0u}; i < size; ++i) {
 		auto &resInfo = m_resourceReferenceInfos.at(i);
 		resInfo.id = f.Read<uint64_t>();
 
@@ -428,31 +419,30 @@ void resource::ResourceExtRefList::Read(const Resource &resource,ufile::IFile &f
 		// jump to string
 		// offset is counted from current position,
 		// so we will need to add 8 to position later
-		f.Seek(previousPosition +f.Read<int64_t>());
+		f.Seek(previousPosition + f.Read<int64_t>());
 
 		resInfo.name = f.ReadString(); // TODO: UTF8
 
-		f.Seek(previousPosition +sizeof(int64_t)); // 8 is to account for string offset
+		f.Seek(previousPosition + sizeof(int64_t)); // 8 is to account for string offset
 	}
 }
-void resource::ResourceExtRefList::DebugPrint(std::stringstream &ss,const std::string &t) const
+void resource::ResourceExtRefList::DebugPrint(std::stringstream &ss, const std::string &t) const
 {
-	ss<<t<<"ResourceExtRefList = {\n";
-	for(auto i=decltype(m_resourceReferenceInfos.size()){0u};i<m_resourceReferenceInfos.size();++i)
-	{
+	ss << t << "ResourceExtRefList = {\n";
+	for(auto i = decltype(m_resourceReferenceInfos.size()) {0u}; i < m_resourceReferenceInfos.size(); ++i) {
 		auto &refInfo = m_resourceReferenceInfos.at(i);
-		ss<<t<<"\t["<<i<<"] = {\n";
-		ss<<t<<"\t\tId = "<<refInfo.id<<"\n";
-		ss<<t<<"\t\tName = "<<refInfo.name<<"\n";
-		ss<<t<<"\t}\n";
+		ss << t << "\t[" << i << "] = {\n";
+		ss << t << "\t\tId = " << refInfo.id << "\n";
+		ss << t << "\t\tName = " << refInfo.name << "\n";
+		ss << t << "\t}\n";
 	}
-	ss<<t<<"}\n";
+	ss << t << "}\n";
 }
 
 ///////////
 
-BlockType resource::VBIB::GetType() const {return BlockType::VBIB;}
-void resource::VBIB::Read(const Resource &resource,ufile::IFile &f)
+BlockType resource::VBIB::GetType() const { return BlockType::VBIB; }
+void resource::VBIB::Read(const Resource &resource, ufile::IFile &f)
 {
 	f.Seek(GetOffset());
 
@@ -461,30 +451,28 @@ void resource::VBIB::Read(const Resource &resource,ufile::IFile &f)
 	auto indexBufferOffset = f.Read<uint32_t>();
 	auto indexBufferCount = f.Read<uint32_t>();
 
-	f.Seek(GetOffset() +vertexBufferOffset);
+	f.Seek(GetOffset() + vertexBufferOffset);
 	m_vertexBuffers.reserve(vertexBufferCount);
-	for(auto i=decltype(vertexBufferCount){0u};i<vertexBufferCount;++i)
-	{
+	for(auto i = decltype(vertexBufferCount) {0u}; i < vertexBufferCount; ++i) {
 		m_vertexBuffers.push_back({});
 		auto &vertexBuffer = m_vertexBuffers.back();
 
-		vertexBuffer.count = f.Read<uint32_t>();            //0
-		vertexBuffer.size = f.Read<uint32_t>();             //4
+		vertexBuffer.count = f.Read<uint32_t>(); //0
+		vertexBuffer.size = f.Read<uint32_t>();  //4
 		auto decompressedSize = vertexBuffer.count * vertexBuffer.size;
 
 		auto refA = f.Tell();
-		auto attributeOffset = f.Read<uint32_t>();  //8
-		auto attributeCount = f.Read<uint32_t>();   //12
+		auto attributeOffset = f.Read<uint32_t>(); //8
+		auto attributeCount = f.Read<uint32_t>();  //12
 
-													//TODO: Read attributes in the future
+		//TODO: Read attributes in the future
 		auto refB = f.Tell();
-		auto dataOffset = f.Read<uint32_t>();       //16
-		auto totalSize = f.Read<uint32_t>();        //20
+		auto dataOffset = f.Read<uint32_t>(); //16
+		auto totalSize = f.Read<uint32_t>();  //20
 
-		f.Seek(refA +attributeOffset);
+		f.Seek(refA + attributeOffset);
 		vertexBuffer.attributes.reserve(attributeCount);
-		for(auto j=decltype(attributeCount){0u};j<attributeCount;++j)
-		{
+		for(auto j = decltype(attributeCount) {0u}; j < attributeCount; ++j) {
 			auto previousPosition = f.Tell();
 
 			vertexBuffer.attributes.push_back({});
@@ -493,270 +481,239 @@ void resource::VBIB::Read(const Resource &resource,ufile::IFile &f)
 			attribute.name = f.ReadString(); // TODO: UTF8
 
 			// Offset is always 40 bytes from the start
-			f.Seek(previousPosition +36);
+			f.Seek(previousPosition + 36);
 
 			attribute.type = f.Read<DXGI_FORMAT>();
 			attribute.offset = f.Read<uint32_t>();
 
 			// There's unusual amount of padding in attributes
-			f.Seek(previousPosition +56);
+			f.Seek(previousPosition + 56);
 		}
 
-		f.Seek(refB +dataOffset);
+		f.Seek(refB + dataOffset);
 
-		if (totalSize == decompressedSize)
-		{
+		if(totalSize == decompressedSize) {
 			vertexBuffer.buffer.resize(totalSize);
-			f.Read(vertexBuffer.buffer.data(),vertexBuffer.buffer.size() *sizeof(vertexBuffer.buffer.front()));
+			f.Read(vertexBuffer.buffer.data(), vertexBuffer.buffer.size() * sizeof(vertexBuffer.buffer.front()));
 		}
-		else
-		{
+		else {
 			std::vector<uint8_t> vertexBufferBytes {};
 			vertexBufferBytes.resize(totalSize);
-			f.Read(vertexBufferBytes.data(),vertexBufferBytes.size() *sizeof(vertexBufferBytes.front()));
+			f.Read(vertexBufferBytes.data(), vertexBufferBytes.size() * sizeof(vertexBufferBytes.front()));
 			vertexBuffer.buffer = MeshOptimizerVertexDecoder::DecodeVertexBuffer((int)vertexBuffer.count, (int)vertexBuffer.size, vertexBufferBytes);
 		}
-		f.Seek(refB +4 +4); //Go back to the vertex array to read the next iteration
+		f.Seek(refB + 4 + 4); //Go back to the vertex array to read the next iteration
 	}
 
-	f.Seek(GetOffset() +8 +indexBufferOffset); //8 to take into account vertexOffset / count
+	f.Seek(GetOffset() + 8 + indexBufferOffset); //8 to take into account vertexOffset / count
 	m_indexBuffers.reserve(indexBufferCount);
-	for(auto i=decltype(indexBufferCount){0u};i<indexBufferCount;++i)
-	{
+	for(auto i = decltype(indexBufferCount) {0u}; i < indexBufferCount; ++i) {
 		m_indexBuffers.push_back({});
 		auto &indexBuffer = m_indexBuffers.back();
 
-		indexBuffer.count = f.Read<uint32_t>();        //0
-		indexBuffer.size = f.Read<uint32_t>();         //4
+		indexBuffer.count = f.Read<uint32_t>(); //0
+		indexBuffer.size = f.Read<uint32_t>();  //4
 		auto decompressedSize = indexBuffer.count * indexBuffer.size;
 
-		auto unknown1 = f.Read<uint32_t>();     //8
-		auto unknown2 = f.Read<uint32_t>();     //12
+		auto unknown1 = f.Read<uint32_t>(); //8
+		auto unknown2 = f.Read<uint32_t>(); //12
 
 		auto refC = f.Tell();
-		auto dataOffset = f.Read<uint32_t>();   //16
-		auto dataSize = f.Read<uint32_t>();     //20
+		auto dataOffset = f.Read<uint32_t>(); //16
+		auto dataSize = f.Read<uint32_t>();   //20
 
-		f.Seek(refC +dataOffset);
+		f.Seek(refC + dataOffset);
 
-		if (dataSize == decompressedSize)
-		{
+		if(dataSize == decompressedSize) {
 			indexBuffer.buffer.resize(dataSize);
-			f.Read(indexBuffer.buffer.data(),indexBuffer.buffer.size() *sizeof(indexBuffer.buffer.front()));
+			f.Read(indexBuffer.buffer.data(), indexBuffer.buffer.size() * sizeof(indexBuffer.buffer.front()));
 		}
-		else
-		{
+		else {
 			std::vector<uint8_t> indexBufferBytes {};
 			indexBufferBytes.resize(dataSize);
-			f.Read(indexBufferBytes.data(),indexBufferBytes.size() *sizeof(indexBufferBytes.front()));
+			f.Read(indexBufferBytes.data(), indexBufferBytes.size() * sizeof(indexBufferBytes.front()));
 			indexBuffer.buffer = MeshOptimizerIndexDecoder::DecodeIndexBuffer((int)indexBuffer.count, (int)indexBuffer.size, indexBufferBytes);
 		}
 
-		f.Seek(refC +4 +4); //Go back to the index array to read the next iteration.
+		f.Seek(refC + 4 + 4); //Go back to the index array to read the next iteration.
 	}
 }
-void resource::VBIB::DebugPrint(std::stringstream &ss,const std::string &t) const
+void resource::VBIB::DebugPrint(std::stringstream &ss, const std::string &t) const
 {
-	ss<<t<<"VBIB = {\n";
-	ss<<t<<"\tVertex buffers:\n";
-	for(auto i=decltype(m_vertexBuffers.size()){0u};i<m_vertexBuffers.size();++i)
-	{
+	ss << t << "VBIB = {\n";
+	ss << t << "\tVertex buffers:\n";
+	for(auto i = decltype(m_vertexBuffers.size()) {0u}; i < m_vertexBuffers.size(); ++i) {
 		auto &vbuf = m_vertexBuffers.at(i);
-		ss<<t<<"\t\t["<<i<<"] = {\n";
-		ss<<t<<"\t\t\tVertex count = "<<vbuf.count<<"\n";
-		ss<<t<<"\t\t\tSize per vertex = "<<vbuf.size<<"\n";
-		ss<<t<<"\t\t\tAttributes:\n";
-		for(auto j=decltype(vbuf.attributes.size()){0u};j<vbuf.attributes.size();++j)
-		{
+		ss << t << "\t\t[" << i << "] = {\n";
+		ss << t << "\t\t\tVertex count = " << vbuf.count << "\n";
+		ss << t << "\t\t\tSize per vertex = " << vbuf.size << "\n";
+		ss << t << "\t\t\tAttributes:\n";
+		for(auto j = decltype(vbuf.attributes.size()) {0u}; j < vbuf.attributes.size(); ++j) {
 			auto &attr = vbuf.attributes.at(j);
-			ss<<t<<"\t\t\t["<<j<<"] = {\n";
-			ss<<t<<"\t\t\t\tName = "<<attr.name<<"\n";
-			ss<<t<<"\t\t\t\tOffset = "<<attr.offset<<"\n";
-			ss<<t<<"\t\t\t\tType = "<<to_string(attr.type)<<"\n";
-			ss<<t<<"\t\t\t}\n";
+			ss << t << "\t\t\t[" << j << "] = {\n";
+			ss << t << "\t\t\t\tName = " << attr.name << "\n";
+			ss << t << "\t\t\t\tOffset = " << attr.offset << "\n";
+			ss << t << "\t\t\t\tType = " << to_string(attr.type) << "\n";
+			ss << t << "\t\t\t}\n";
 		}
-		ss<<t<<"\t\t}\n";
+		ss << t << "\t\t}\n";
 	}
-	ss<<t<<"\tIndex buffers:\n";
-	for(auto i=decltype(m_indexBuffers.size()){0u};i<m_indexBuffers.size();++i)
-	{
+	ss << t << "\tIndex buffers:\n";
+	for(auto i = decltype(m_indexBuffers.size()) {0u}; i < m_indexBuffers.size(); ++i) {
 		auto &ibuf = m_indexBuffers.at(i);
-		ss<<t<<"\t\t["<<i<<"] = {\n";
-		ss<<t<<"\t\t\tIndex count = "<<ibuf.count<<"\n";
-		ss<<t<<"\t\t\tSize per index = "<<ibuf.size<<"\n";
-		ss<<t<<"\t\t}\n";
+		ss << t << "\t\t[" << i << "] = {\n";
+		ss << t << "\t\t\tIndex count = " << ibuf.count << "\n";
+		ss << t << "\t\t\tSize per index = " << ibuf.size << "\n";
+		ss << t << "\t\t}\n";
 	}
-	ss<<t<<"}\n";
+	ss << t << "}\n";
 }
 
-const std::vector<resource::VBIB::VertexBuffer> &resource::VBIB::GetVertexBuffers() const {return m_vertexBuffers;}
-const std::vector<resource::VBIB::IndexBuffer> &resource::VBIB::GetIndexBuffers() const {return m_indexBuffers;}
+const std::vector<resource::VBIB::VertexBuffer> &resource::VBIB::GetVertexBuffers() const { return m_vertexBuffers; }
+const std::vector<resource::VBIB::IndexBuffer> &resource::VBIB::GetIndexBuffers() const { return m_indexBuffers; }
 
-void resource::VBIB::VertexBuffer::ReadVertexAttribute(uint32_t offset, const VertexAttribute &attribute,std::vector<float> &outData) const
+void resource::VBIB::VertexBuffer::ReadVertexAttribute(uint32_t offset, const VertexAttribute &attribute, std::vector<float> &outData) const
 {
-	offset = offset *size +attribute.offset;
+	offset = offset * size + attribute.offset;
 
-	switch (attribute.type)
-	{
+	switch(attribute.type) {
 	case DXGI_FORMAT::R32G32B32_FLOAT:
 		outData.resize(3);
-		std::memcpy(outData.data(),buffer.data() +offset,outData.size() *sizeof(outData.front()));
+		std::memcpy(outData.data(), buffer.data() + offset, outData.size() * sizeof(outData.front()));
 		break;
 
 	case DXGI_FORMAT::R16G16_FLOAT:
-	{
-		std::array<uint16_t,2> shorts {};
-		std::memcpy(shorts.data(),buffer.data() +offset,shorts.size() *sizeof(shorts.front()));
+		{
+			std::array<uint16_t, 2> shorts {};
+			std::memcpy(shorts.data(), buffer.data() + offset, shorts.size() * sizeof(shorts.front()));
 
-		outData.resize(2);
-		outData.at(0) = umath::float16_to_float32_glm(shorts.at(0));
-		outData.at(1) = umath::float16_to_float32_glm(shorts.at(1));
-		break;
-	}
+			outData.resize(2);
+			outData.at(0) = umath::float16_to_float32_glm(shorts.at(0));
+			outData.at(1) = umath::float16_to_float32_glm(shorts.at(1));
+			break;
+		}
 	case DXGI_FORMAT::R16G16_UNORM:
-	{
-		std::array<uint16_t,2> shorts {};
-		std::memcpy(shorts.data(),buffer.data() +offset,shorts.size() *sizeof(shorts.front()));
+		{
+			std::array<uint16_t, 2> shorts {};
+			std::memcpy(shorts.data(), buffer.data() + offset, shorts.size() * sizeof(shorts.front()));
 
-		outData.resize(2);
-		outData.at(0) = shorts.at(0) /static_cast<float>(std::numeric_limits<uint16_t>::max());
-		outData.at(1) = shorts.at(1) /static_cast<float>(std::numeric_limits<uint16_t>::max());
-		break;
-	}
+			outData.resize(2);
+			outData.at(0) = shorts.at(0) / static_cast<float>(std::numeric_limits<uint16_t>::max());
+			outData.at(1) = shorts.at(1) / static_cast<float>(std::numeric_limits<uint16_t>::max());
+			break;
+		}
 	case DXGI_FORMAT::R32G32_FLOAT:
 		outData.resize(2);
-		std::memcpy(outData.data(),buffer.data() +offset,outData.size() *sizeof(outData.front()));
+		std::memcpy(outData.data(), buffer.data() + offset, outData.size() * sizeof(outData.front()));
 		break;
 	case DXGI_FORMAT::R32_FLOAT:
 		outData.resize(1);
-		std::memcpy(outData.data(),buffer.data() +offset,outData.size() *sizeof(outData.front()));
+		std::memcpy(outData.data(), buffer.data() + offset, outData.size() * sizeof(outData.front()));
 		break;
 	case DXGI_FORMAT::R8G8B8A8_UINT:
 	case DXGI_FORMAT::R8G8B8A8_UNORM:
-	{
-		std::array<uint8_t,4> bytes {};
-		std::memcpy(bytes.data(),buffer.data() +offset,bytes.size() *sizeof(bytes.front()));
-
-		outData.resize(4);
-		for(auto i=decltype(outData.size()){0u};i<outData.size();++i)
 		{
-			outData.at(i) = attribute.type == DXGI_FORMAT::R8G8B8A8_UNORM
-				? bytes.at(i) / static_cast<float>(std::numeric_limits<uint8_t>::max())
-				: bytes.at(i);
+			std::array<uint8_t, 4> bytes {};
+			std::memcpy(bytes.data(), buffer.data() + offset, bytes.size() * sizeof(bytes.front()));
+
+			outData.resize(4);
+			for(auto i = decltype(outData.size()) {0u}; i < outData.size(); ++i) {
+				outData.at(i) = attribute.type == DXGI_FORMAT::R8G8B8A8_UNORM ? bytes.at(i) / static_cast<float>(std::numeric_limits<uint8_t>::max()) : bytes.at(i);
+			}
+
+			break;
 		}
-
-		break;
-	}
 	default:
-		throw std::runtime_error{"Unsupported \"" +attribute.name +"\" DXGI_FORMAT." +std::to_string(umath::to_integral(attribute.type))};
+		throw std::runtime_error {"Unsupported \"" + attribute.name + "\" DXGI_FORMAT." + std::to_string(umath::to_integral(attribute.type))};
 	}
 }
-void resource::VBIB::ReadVertexAttribute(uint32_t offset, const VertexBuffer &vertexBuffer, const VertexAttribute &attribute,std::vector<float> &outData)
-{
-	vertexBuffer.ReadVertexAttribute(offset,attribute,outData);
-}
+void resource::VBIB::ReadVertexAttribute(uint32_t offset, const VertexBuffer &vertexBuffer, const VertexAttribute &attribute, std::vector<float> &outData) { vertexBuffer.ReadVertexAttribute(offset, attribute, outData); }
 
 ///////////
 
-BlockType resource::MBUF::GetType() const {return BlockType::MBUF;}
+BlockType resource::MBUF::GetType() const { return BlockType::MBUF; }
 
 ///////////
 
-BlockType resource::VXVS::GetType() const {return BlockType::VXVS;}
+BlockType resource::VXVS::GetType() const { return BlockType::VXVS; }
 
-void resource::VXVS::Read(const Resource &resource,ufile::IFile &f)
-{
-	throw std::invalid_argument{"VXVS block type not yet implemented!"};
-}
-void resource::VXVS::DebugPrint(std::stringstream &ss,const std::string &t) const
-{
-	ss<<t<<"VXVS = UNKNOWN\n";
-}
+void resource::VXVS::Read(const Resource &resource, ufile::IFile &f) { throw std::invalid_argument {"VXVS block type not yet implemented!"}; }
+void resource::VXVS::DebugPrint(std::stringstream &ss, const std::string &t) const { ss << t << "VXVS = UNKNOWN\n"; }
 
 ///////////
 
-BlockType resource::SNAP::GetType() const {return BlockType::SNAP;}
+BlockType resource::SNAP::GetType() const { return BlockType::SNAP; }
 
-void resource::SNAP::Read(const Resource &resource,ufile::IFile &f)
-{
-	throw std::invalid_argument{"SNAP block type not yet implemented!"};
-}
-void resource::SNAP::DebugPrint(std::stringstream &ss,const std::string &t) const
-{
-	ss<<t<<"VXVS = UNKNOWN\n";
-}
+void resource::SNAP::Read(const Resource &resource, ufile::IFile &f) { throw std::invalid_argument {"SNAP block type not yet implemented!"}; }
+void resource::SNAP::DebugPrint(std::stringstream &ss, const std::string &t) const { ss << t << "VXVS = UNKNOWN\n"; }
 
 ///////////
 
-BlockType resource::ResourceIntrospectionManifest::GetType() const {return BlockType::NTRO;}
+BlockType resource::ResourceIntrospectionManifest::GetType() const { return BlockType::NTRO; }
 
-void resource::ResourceIntrospectionManifest::Read(const Resource &resource,ufile::IFile &f)
+void resource::ResourceIntrospectionManifest::Read(const Resource &resource, ufile::IFile &f)
 {
 	f.Seek(GetOffset());
 	m_introspectionVersion = f.Read<uint32_t>();
 	ReadStructs(f);
 
-	f.Seek(GetOffset() +sizeof(int32_t) *3);
+	f.Seek(GetOffset() + sizeof(int32_t) * 3);
 	ReadEnums(f);
 }
-uint32_t resource::ResourceIntrospectionManifest::GetIntrospectionVersion() const {return m_introspectionVersion;}
-const std::vector<resource::ResourceIntrospectionManifest::ResourceDiskStruct> &resource::ResourceIntrospectionManifest::GetReferencedStructs() const {return m_referencedStructs;}
-const std::vector<resource::ResourceIntrospectionManifest::ResourceDiskEnum> &resource::ResourceIntrospectionManifest::GetReferencedEnums() const {return m_referencedEnums;}
-void resource::ResourceIntrospectionManifest::DebugPrint(std::stringstream &ss,const std::string &t) const
+uint32_t resource::ResourceIntrospectionManifest::GetIntrospectionVersion() const { return m_introspectionVersion; }
+const std::vector<resource::ResourceIntrospectionManifest::ResourceDiskStruct> &resource::ResourceIntrospectionManifest::GetReferencedStructs() const { return m_referencedStructs; }
+const std::vector<resource::ResourceIntrospectionManifest::ResourceDiskEnum> &resource::ResourceIntrospectionManifest::GetReferencedEnums() const { return m_referencedEnums; }
+void resource::ResourceIntrospectionManifest::DebugPrint(std::stringstream &ss, const std::string &t) const
 {
-	ss<<t<<"ResourceIntrospectionManifest = {\n";
-	ss<<t<<"\tIntrospection version: "<<m_introspectionVersion<<"\n";
-	ss<<t<<"\tStructs:\n";
-	for(auto i=decltype(m_referencedStructs.size()){0u};i<m_referencedStructs.size();++i)
-	{
+	ss << t << "ResourceIntrospectionManifest = {\n";
+	ss << t << "\tIntrospection version: " << m_introspectionVersion << "\n";
+	ss << t << "\tStructs:\n";
+	for(auto i = decltype(m_referencedStructs.size()) {0u}; i < m_referencedStructs.size(); ++i) {
 		auto &strct = m_referencedStructs.at(i);
-		ss<<t<<"\t["<<i<<"] = {\n";
-		ss<<t<<"\t\tIntrospection version = "<<strct.introspectionVersion<<"\n";
-		ss<<t<<"\t\tId = "<<strct.id<<"\n";
-		ss<<t<<"\t\tName = "<<strct.name<<"\n";
-		ss<<t<<"\t\tDisk CRC = "<<strct.diskCrc<<"\n";
-		ss<<t<<"\t\tUser version = "<<strct.userVersion<<"\n";
-		ss<<t<<"\t\tDisk size = "<<strct.diskSize<<"\n";
-		ss<<t<<"\t\tAlignment = "<<strct.alignment<<"\n";
-		ss<<t<<"\t\tBase struct id = "<<strct.baseStructId<<"\n";
-		ss<<t<<"\t\tStruct flags = "<<strct.structFlags<<"\n";
-		ss<<t<<"\t\tfield Introspection:\n";
-		for(auto j=decltype(strct.fieldIntrospection.size()){0u};j<strct.fieldIntrospection.size();++j)
-		{
+		ss << t << "\t[" << i << "] = {\n";
+		ss << t << "\t\tIntrospection version = " << strct.introspectionVersion << "\n";
+		ss << t << "\t\tId = " << strct.id << "\n";
+		ss << t << "\t\tName = " << strct.name << "\n";
+		ss << t << "\t\tDisk CRC = " << strct.diskCrc << "\n";
+		ss << t << "\t\tUser version = " << strct.userVersion << "\n";
+		ss << t << "\t\tDisk size = " << strct.diskSize << "\n";
+		ss << t << "\t\tAlignment = " << strct.alignment << "\n";
+		ss << t << "\t\tBase struct id = " << strct.baseStructId << "\n";
+		ss << t << "\t\tStruct flags = " << strct.structFlags << "\n";
+		ss << t << "\t\tfield Introspection:\n";
+		for(auto j = decltype(strct.fieldIntrospection.size()) {0u}; j < strct.fieldIntrospection.size(); ++j) {
 			auto &introSpec = strct.fieldIntrospection.at(j);
-			ss<<t<<"\t\t\t["<<j<<"] = {\n";
-			ss<<t<<"\t\t\t\tField name = "<<introSpec.fieldName<<"\n";
-			ss<<t<<"\t\t\t\tCount = "<<introSpec.count<<"\n";
-			ss<<t<<"\t\t\t\tDisk offset = "<<introSpec.diskOffset<<"\n";
-			ss<<t<<"\t\t\t\tIndirections = "<<introSpec.indirections.size()<<"\n";
-			ss<<t<<"\t\t\t\tType data = "<<introSpec.typeData<<"\n";
-			ss<<t<<"\t\t\t\tType = "<<to_string(introSpec.type)<<"\n";
-			ss<<t<<"\t\t\t}\n";
+			ss << t << "\t\t\t[" << j << "] = {\n";
+			ss << t << "\t\t\t\tField name = " << introSpec.fieldName << "\n";
+			ss << t << "\t\t\t\tCount = " << introSpec.count << "\n";
+			ss << t << "\t\t\t\tDisk offset = " << introSpec.diskOffset << "\n";
+			ss << t << "\t\t\t\tIndirections = " << introSpec.indirections.size() << "\n";
+			ss << t << "\t\t\t\tType data = " << introSpec.typeData << "\n";
+			ss << t << "\t\t\t\tType = " << to_string(introSpec.type) << "\n";
+			ss << t << "\t\t\t}\n";
 		}
-		ss<<t<<"\t}\n";
+		ss << t << "\t}\n";
 	}
-	ss<<t<<"\tEnums:\n";
-	for(auto i=decltype(m_referencedEnums.size()){0u};i<m_referencedEnums.size();++i)
-	{
+	ss << t << "\tEnums:\n";
+	for(auto i = decltype(m_referencedEnums.size()) {0u}; i < m_referencedEnums.size(); ++i) {
 		auto &en = m_referencedEnums.at(i);
-		ss<<t<<"\t["<<i<<"] = {\n";
-		ss<<t<<"\t\tIntrospection version = "<<en.introspectionVersion<<"\n";
-		ss<<t<<"\t\tId = "<<en.id<<"\n";
-		ss<<t<<"\t\tName = "<<en.name<<"\n";
-		ss<<t<<"\t\tDisk CRC = "<<en.diskCrc<<"\n";
-		ss<<t<<"\t\tUser version = "<<en.userVersion<<"\n";
-		ss<<t<<"\t\tEnum value introspection:\n";
-		for(auto j=decltype(en.enumValueIntrospection.size()){0u};j<en.enumValueIntrospection.size();++j)
-		{
+		ss << t << "\t[" << i << "] = {\n";
+		ss << t << "\t\tIntrospection version = " << en.introspectionVersion << "\n";
+		ss << t << "\t\tId = " << en.id << "\n";
+		ss << t << "\t\tName = " << en.name << "\n";
+		ss << t << "\t\tDisk CRC = " << en.diskCrc << "\n";
+		ss << t << "\t\tUser version = " << en.userVersion << "\n";
+		ss << t << "\t\tEnum value introspection:\n";
+		for(auto j = decltype(en.enumValueIntrospection.size()) {0u}; j < en.enumValueIntrospection.size(); ++j) {
 			auto &introSpec = en.enumValueIntrospection.at(j);
-			ss<<t<<"\t\t\t["<<j<<"] = {\n";
-			ss<<t<<"\t\t\t\tEnum value name = "<<introSpec.enumValueName<<"\n";
-			ss<<t<<"\t\t\t\tEnum value = "<<introSpec.enumValue<<"\n";
-			ss<<t<<"\t\t\t}\n";
+			ss << t << "\t\t\t[" << j << "] = {\n";
+			ss << t << "\t\t\t\tEnum value name = " << introSpec.enumValueName << "\n";
+			ss << t << "\t\t\t\tEnum value = " << introSpec.enumValue << "\n";
+			ss << t << "\t\t\t}\n";
 		}
-		ss<<t<<"\t}\n";
+		ss << t << "\t}\n";
 	}
-	ss<<t<<"}\n";
+	ss << t << "}\n";
 }
 void resource::ResourceIntrospectionManifest::ReadStructs(ufile::IFile &f)
 {
@@ -765,10 +722,9 @@ void resource::ResourceIntrospectionManifest::ReadStructs(ufile::IFile &f)
 	auto entriesCount = f.Read<uint32_t>();
 	if(entriesCount == 0)
 		return;
-	f.Seek(offset +entriesOffset);
+	f.Seek(offset + entriesOffset);
 	m_referencedStructs.reserve(entriesCount);
-	for(auto i=decltype(entriesCount){0u};i<entriesCount;++i)
-	{
+	for(auto i = decltype(entriesCount) {0u}; i < entriesCount; ++i) {
 		m_referencedStructs.push_back({});
 		auto &diskStruct = m_referencedStructs.back();
 		diskStruct.introspectionVersion = f.Read<uint32_t>();
@@ -781,13 +737,11 @@ void resource::ResourceIntrospectionManifest::ReadStructs(ufile::IFile &f)
 		diskStruct.baseStructId = f.Read<uint32_t>();
 		auto fieldsOffset = f.Read<uint32_t>();
 		auto fieldsSize = f.Read<uint32_t>();
-		if(fieldsSize > 0)
-		{
+		if(fieldsSize > 0) {
 			auto prev = f.Tell();
-			f.Seek(f.Tell() +fieldsOffset -sizeof(uint32_t) *2);
+			f.Seek(f.Tell() + fieldsOffset - sizeof(uint32_t) * 2);
 			diskStruct.fieldIntrospection.reserve(fieldsSize);
-			for(auto j=decltype(fieldsSize){0u};j<fieldsSize;++j)
-			{
+			for(auto j = decltype(fieldsSize) {0u}; j < fieldsSize; ++j) {
 				diskStruct.fieldIntrospection.push_back({});
 				auto &field = diskStruct.fieldIntrospection.back();
 				field.fieldName = read_offset_string(f);
@@ -796,23 +750,22 @@ void resource::ResourceIntrospectionManifest::ReadStructs(ufile::IFile &f)
 
 				auto indirectionOffset = f.Read<uint32_t>();
 				auto indirectionSize = f.Read<uint32_t>();
-				if(indirectionSize > 0)
-				{
+				if(indirectionSize > 0) {
 					auto prev2 = f.Tell();
-					f.Seek(f.Tell() +indirectionOffset -sizeof(uint32_t) *2);
+					f.Seek(f.Tell() + indirectionOffset - sizeof(uint32_t) * 2);
 					field.indirections.resize(indirectionSize);
-					f.Read(field.indirections.data(),field.indirections.size() *sizeof(field.indirections.front()));
+					f.Read(field.indirections.data(), field.indirections.size() * sizeof(field.indirections.front()));
 					f.Seek(prev2);
 				}
 
 				field.typeData = f.Read<uint32_t>();
 				field.type = f.Read<DataType>();
-				f.Seek(f.Tell() +2); // ??
+				f.Seek(f.Tell() + 2); // ??
 			}
 			f.Seek(prev);
 		}
 		diskStruct.structFlags = f.Read<uint8_t>();
-		f.Seek(f.Tell() +3); // ??
+		f.Seek(f.Tell() + 3); // ??
 	}
 }
 void resource::ResourceIntrospectionManifest::ReadEnums(ufile::IFile &f)
@@ -822,10 +775,9 @@ void resource::ResourceIntrospectionManifest::ReadEnums(ufile::IFile &f)
 	auto entriesCount = f.Read<uint32_t>();
 	if(entriesCount == 0)
 		return;
-	f.Seek(offset +entriesOffset);
+	f.Seek(offset + entriesOffset);
 	m_referencedEnums.reserve(entriesCount);
-	for(auto i=decltype(entriesCount){0u};i<entriesCount;++i)
-	{
+	for(auto i = decltype(entriesCount) {0u}; i < entriesCount; ++i) {
 		m_referencedEnums.push_back({});
 		auto &diskEnum = m_referencedEnums.back();
 		diskEnum.introspectionVersion = f.Read<uint32_t>();
@@ -836,13 +788,11 @@ void resource::ResourceIntrospectionManifest::ReadEnums(ufile::IFile &f)
 
 		auto fieldsOffset = f.Read<uint32_t>();
 		auto fieldsSize = f.Read<uint32_t>();
-		if(fieldsSize > 0)
-		{
+		if(fieldsSize > 0) {
 			auto prev = f.Tell();
-			f.Seek(f.Tell() +fieldsOffset -sizeof(uint32_t) *2);
+			f.Seek(f.Tell() + fieldsOffset - sizeof(uint32_t) * 2);
 			diskEnum.enumValueIntrospection.reserve(fieldsSize);
-			for(auto j=decltype(fieldsSize){0u};j<fieldsSize;++j)
-			{
+			for(auto j = decltype(fieldsSize) {0u}; j < fieldsSize; ++j) {
 				diskEnum.enumValueIntrospection.push_back({});
 				auto &field = diskEnum.enumValueIntrospection.back();
 				field.enumValueName = read_offset_string(f);

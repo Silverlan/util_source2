@@ -30,13 +30,11 @@ SOFTWARE.
 #include <vector>
 #include <cinttypes>
 
-namespace source2
-{
-	namespace murmur2
-	{
-		uint32_t hash(const std::string &data,uint32_t seed);
-		uint32_t hash(const std::vector<uint8_t> &data,uint32_t seed);
-		uint32_t hash(const uint8_t *data,size_t len,uint32_t seed);
+namespace source2 {
+	namespace murmur2 {
+		uint32_t hash(const std::string &data, uint32_t seed);
+		uint32_t hash(const std::vector<uint8_t> &data, uint32_t seed);
+		uint32_t hash(const uint8_t *data, size_t len, uint32_t seed);
 	};
 };
 

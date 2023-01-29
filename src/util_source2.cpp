@@ -34,8 +34,7 @@ SOFTWARE.
 
 std::string source2::to_string(REDIStruct blockType)
 {
-	switch(blockType)
-	{
+	switch(blockType) {
 	case REDIStruct::InputDependencies:
 		return "InputDependencies";
 	case REDIStruct::AdditionalInputDependencies:
@@ -61,8 +60,7 @@ std::string source2::to_string(REDIStruct blockType)
 }
 std::string source2::to_string(ResourceType blockType)
 {
-	switch(blockType)
-	{
+	switch(blockType) {
 	case ResourceType::Unknown:
 		return "Unknown";
 	case ResourceType::Animation:
@@ -132,8 +130,7 @@ std::string source2::to_string(ResourceType blockType)
 }
 std::string source2::to_string(VTexExtraData blockType)
 {
-	switch(blockType)
-	{
+	switch(blockType) {
 	case VTexExtraData::UNKNOWN:
 		return "UNKNOWN";
 	case VTexExtraData::FALLBACK_BITS:
@@ -149,8 +146,7 @@ std::string source2::to_string(VTexExtraData blockType)
 }
 std::string source2::to_string(VTexFlags blockType)
 {
-	switch(blockType)
-	{
+	switch(blockType) {
 	case VTexFlags::None:
 		return "None";
 	case VTexFlags::SUGGEST_CLAMPS:
@@ -172,8 +168,7 @@ std::string source2::to_string(VTexFlags blockType)
 }
 std::string source2::to_string(VTexFormat blockType)
 {
-	switch(blockType)
-	{
+	switch(blockType) {
 	case VTexFormat::UNKNOWN:
 		return "UNKNOWN";
 	case VTexFormat::DXT1:
@@ -237,8 +232,7 @@ std::string source2::to_string(VTexFormat blockType)
 }
 std::string source2::to_string(BlockType blockType)
 {
-	switch(blockType)
-	{
+	switch(blockType) {
 	case BlockType::None:
 		return "None";
 	case BlockType::RERL:
@@ -275,7 +269,7 @@ std::string source2::to_string(BlockType blockType)
 	return "Invalid";
 }
 
-std::shared_ptr<source2::resource::Resource> source2::load_resource(ufile::IFile &file,const std::function<std::unique_ptr<ufile::IFile>(const std::string&)> &fAssetLoader)
+std::shared_ptr<source2::resource::Resource> source2::load_resource(ufile::IFile &file, const std::function<std::unique_ptr<ufile::IFile>(const std::string &)> &fAssetLoader)
 {
 	auto resource = std::make_shared<resource::Resource>(fAssetLoader);
 	if(resource->Read(file) == false)
@@ -283,11 +277,10 @@ std::shared_ptr<source2::resource::Resource> source2::load_resource(ufile::IFile
 	return resource;
 }
 
-void source2::debug_print(resource::Resource &resource,std::stringstream &ss)
+void source2::debug_print(resource::Resource &resource, std::stringstream &ss)
 {
-	for(auto &block : resource.GetBlocks())
-	{
-		ss<<"["<<to_string(block->GetType())<<"]\n";
-		block->DebugPrint(ss,"\t");
+	for(auto &block : resource.GetBlocks()) {
+		ss << "[" << to_string(block->GetType()) << "]\n";
+		block->DebugPrint(ss, "\t");
 	}
 }

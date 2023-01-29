@@ -33,15 +33,15 @@ SOFTWARE.
 #include <cinttypes>
 
 class VFilePtrInternal;
-namespace ufile {struct IFile;};
-namespace source2::resource
-{
+namespace ufile {
+	struct IFile;
+};
+namespace source2::resource {
 	std::string read_offset_string(ufile::IFile &f);
 };
 
-namespace source2::impl
-{
-	const std::unordered_map<uint32_t,std::string> &get_known_keyvalues();
+namespace source2::impl {
+	const std::unordered_map<uint32_t, std::string> &get_known_keyvalues();
 	std::optional<std::string> hash_to_keyvalue(uint32_t hash);
 };
 

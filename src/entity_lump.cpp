@@ -8,17 +8,16 @@ using namespace source2;
 
 std::optional<std::string> resource::EntityProperty::ToString() const
 {
-	switch(type)
-	{
+	switch(type) {
 	case Type::Bool:
 		return GetData<bool>(false) ? "1" : "0";
 	case Type::Float:
 		return std::to_string(GetData<float>(0.f));
 	case Type::Color255:
-	{
-		auto col = GetData<std::array<uint8_t,4>>({});
-		return std::to_string(col.at(0)) +' ' +std::to_string(col.at(1)) +' ' +std::to_string(col.at(2)) +' ' +std::to_string(col.at(3));
-	}
+		{
+			auto col = GetData<std::array<uint8_t, 4>>({});
+			return std::to_string(col.at(0)) + ' ' + std::to_string(col.at(1)) + ' ' + std::to_string(col.at(2)) + ' ' + std::to_string(col.at(3));
+		}
 	case Type::NodeId:
 	case Type::Flags:
 		return std::to_string(GetData<uint32_t>(0));
@@ -26,10 +25,10 @@ std::optional<std::string> resource::EntityProperty::ToString() const
 		return std::to_string(GetData<uint64_t>(0));
 	case Type::Vector:
 	case Type::Angle:
-	{
-		auto v = GetData<Vector3>({});
-		return std::to_string(v.x) +' ' +std::to_string(v.y) +' ' +std::to_string(v.z);
-	}
+		{
+			auto v = GetData<Vector3>({});
+			return std::to_string(v.x) + ' ' + std::to_string(v.y) + ' ' + std::to_string(v.z);
+		}
 	case Type::String:
 		return GetData<std::string>("");
 	}
@@ -38,19 +37,13 @@ std::optional<std::string> resource::EntityProperty::ToString() const
 
 ///////////
 
-std::shared_ptr<resource::Entity> resource::Entity::Create(const std::unordered_map<uint32_t,EntityProperty> &properties)
+std::shared_ptr<resource::Entity> resource::Entity::Create(const std::unordered_map<uint32_t, EntityProperty> &properties) { return std::shared_ptr<Entity> {new Entity {properties}}; }
+resource::Entity::Entity(const std::unordered_map<uint32_t, EntityProperty> &properties) : m_properties {properties} {}
+const std::unordered_map<uint32_t, resource::EntityProperty> &resource::Entity::GetProperties() const { return m_properties; }
+std::unordered_map<std::string, std::string> resource::Entity::GetKeyValues() const
 {
-	return std::shared_ptr<Entity>{new Entity{properties}};
-}
-resource::Entity::Entity(const std::unordered_map<uint32_t,EntityProperty> &properties)
-	: m_properties{properties}
-{}
-const std::unordered_map<uint32_t,resource::EntityProperty> &resource::Entity::GetProperties() const {return m_properties;}
-std::unordered_map<std::string,std::string> resource::Entity::GetKeyValues() const
-{
-	std::unordered_map<std::string,std::string> keyValues {};
-	for(auto &pair : m_properties)
-	{
+	std::unordered_map<std::string, std::string> keyValues {};
+	for(auto &pair : m_properties) {
 		auto key = impl::hash_to_keyvalue(pair.first);
 		auto val = pair.second.ToString();
 		if(key.has_value() == false || val.has_value() == false)
@@ -61,7 +54,7 @@ std::unordered_map<std::string,std::string> resource::Entity::GetKeyValues() con
 }
 resource::EntityProperty *resource::Entity::FindProperty(const std::string &key)
 {
-	auto hash = source2::murmur2::hash(key,MURMUR2_SEED);
+	auto hash = source2::murmur2::hash(key, MURMUR2_SEED);
 	auto it = m_properties.find(hash);
 	return (it != m_properties.end()) ? &it->second : nullptr;
 }
@@ -81,10 +74,9 @@ std::vector<std::shared_ptr<resource::Entity>> resource::EntityLump::GetEntities
 	if(data == nullptr)
 		return {};
 	std::vector<std::shared_ptr<resource::Entity>> ents {};
-	auto entityKeyValues = data->FindArrayValues<IKeyValueCollection*>("m_entityKeyValues");
+	auto entityKeyValues = data->FindArrayValues<IKeyValueCollection *>("m_entityKeyValues");
 	ents.reserve(entityKeyValues.size());
-	for(auto &kv : entityKeyValues)
-	{
+	for(auto &kv : entityKeyValues) {
 		auto *kvData = kv->FindBinaryBlob("m_keyValuesData");
 		auto ent = ParseEntityProperties(*kvData);
 		// TODO: m_connections
@@ -96,62 +88,59 @@ std::vector<std::shared_ptr<resource::Entity>> resource::EntityLump::GetEntities
 }
 std::shared_ptr<resource::Entity> resource::EntityLump::ParseEntityProperties(const std::vector<uint8_t> &bytes) const
 {
-	DataStream ds {const_cast<uint8_t*>(bytes.data()),static_cast<uint32_t>(bytes.size())};
+	DataStream ds {const_cast<uint8_t *>(bytes.data()), static_cast<uint32_t>(bytes.size())};
 	ds->SetOffset(0);
 	auto a = ds->Read<uint32_t>();
 	if(a != 1)
-		throw std::runtime_error{"First field in entity lump is not 1"};
+		throw std::runtime_error {"First field in entity lump is not 1"};
 	auto hashedFieldsCount = ds->Read<uint32_t>();
 	auto stringFieldsCount = ds->Read<uint32_t>();
-	std::unordered_map<uint32_t,EntityProperty> properties {};
+	std::unordered_map<uint32_t, EntityProperty> properties {};
 
-	for(auto i=decltype(hashedFieldsCount){0u};i<hashedFieldsCount;++i)
-	{
+	for(auto i = decltype(hashedFieldsCount) {0u}; i < hashedFieldsCount; ++i) {
 		// murmur2 hashed field name (see EntityLumpKeyLookup)
 		auto keyHash = ds->Read<uint32_t>();
-		ReadTypedValue(ds,keyHash,{},properties);
+		ReadTypedValue(ds, keyHash, {}, properties);
 	}
-	for(auto i=decltype(stringFieldsCount){0u};i<stringFieldsCount;++i)
-	{
+	for(auto i = decltype(stringFieldsCount) {0u}; i < stringFieldsCount; ++i) {
 		auto keyHash = ds->Read<uint32_t>();
 		auto keyName = ds->ReadString();
-		ReadTypedValue(ds,keyHash,keyName,properties);
+		ReadTypedValue(ds, keyHash, keyName, properties);
 	}
 	return Entity::Create(properties);
 }
-void resource::EntityLump::ReadTypedValue(DataStream &ds,uint32_t keyHash,const std::optional<std::string> &keyName,std::unordered_map<uint32_t,EntityProperty> &properties) const
+void resource::EntityLump::ReadTypedValue(DataStream &ds, uint32_t keyHash, const std::optional<std::string> &keyName, std::unordered_map<uint32_t, EntityProperty> &properties) const
 {
 	auto type = ds->Read<EntityProperty::Type>();
 	EntityProperty property {};
 	property.type = type;
 	property.name = keyName;
-	switch(type)
-	{
-	case EntityProperty::Type::Bool: // boolean
+	switch(type) {
+	case EntityProperty::Type::Bool:                              // boolean
 		property.data = std::make_shared<bool>(ds->Read<bool>()); // 1
 		break;
-	case EntityProperty::Type::Float: // float
+	case EntityProperty::Type::Float:                               // float
 		property.data = std::make_shared<float>(ds->Read<float>()); // 4
 		break;
-	case EntityProperty::Type::Color255: // color255
-		property.data = std::make_shared<std::array<uint8_t,4>>(ds->Read<std::array<uint8_t,4>>()); // 4
+	case EntityProperty::Type::Color255:                                                              // color255
+		property.data = std::make_shared<std::array<uint8_t, 4>>(ds->Read<std::array<uint8_t, 4>>()); // 4
 		break;
-	case EntityProperty::Type::NodeId: // node_id
-	case EntityProperty::Type::Flags: // flags
+	case EntityProperty::Type::NodeId:                                    // node_id
+	case EntityProperty::Type::Flags:                                     // flags
 		property.data = std::make_shared<uint32_t>(ds->Read<uint32_t>()); // 4
 		break;
-	case EntityProperty::Type::Integer: // integer
+	case EntityProperty::Type::Integer:                                   // integer
 		property.data = std::make_shared<uint64_t>(ds->Read<uint64_t>()); // 8
 		break;
-	case EntityProperty::Type::Vector: // vector
-	case EntityProperty::Type::Angle: // angle
+	case EntityProperty::Type::Vector:                                  // vector
+	case EntityProperty::Type::Angle:                                   // angle
 		property.data = std::make_shared<Vector3>(ds->Read<Vector3>()); // 12
 		break;
-	case EntityProperty::Type::String: // string
+	case EntityProperty::Type::String:                                   // string
 		property.data = std::make_shared<std::string>(ds->ReadString()); // null term variable
 		break;
 	default:
-		throw std::runtime_error{"Unknown type " +std::to_string(umath::to_integral(type))};
+		throw std::runtime_error {"Unknown type " + std::to_string(umath::to_integral(type))};
 	}
-	properties.insert(std::make_pair(keyHash,property));
+	properties.insert(std::make_pair(keyHash, property));
 }

@@ -35,11 +35,9 @@ SOFTWARE.
 #include <stdexcept>
 
 class DataStream;
-namespace source2::resource
-{
-	class DLLUS2 MeshOptimizerVertexDecoder
-	{
-	public:
+namespace source2::resource {
+	class DLLUS2 MeshOptimizerVertexDecoder {
+	  public:
 		static constexpr uint8_t VertexHeader = 0xa0;
 
 		static constexpr int32_t VertexBlockSizeBytes = 8192;
@@ -57,13 +55,12 @@ namespace source2::resource
 		static std::vector<uint8_t> DecodeVertexBuffer(int vertexCount, int vertexSize, const std::vector<uint8_t> &vertexBuffer);
 	};
 
-	class DLLUS2 MeshOptimizerIndexDecoder
-	{
-	public:
+	class DLLUS2 MeshOptimizerIndexDecoder {
+	  public:
 		static constexpr uint8_t IndexHeader = 0xe0;
 
-		static void PushEdgeFifo(std::array<std::pair<uint32_t, uint32_t>,16> &fifo, int &offset, uint32_t a, uint32_t b);
-		static void PushVertexFifo(std::array<uint32_t,16> &fifo, int &offset, uint32_t v, bool cond = true);
+		static void PushEdgeFifo(std::array<std::pair<uint32_t, uint32_t>, 16> &fifo, int &offset, uint32_t a, uint32_t b);
+		static void PushVertexFifo(std::array<uint32_t, 16> &fifo, int &offset, uint32_t v, bool cond = true);
 		static uint32_t DecodeVByte(DataStream &data);
 		static uint32_t DecodeIndex(DataStream &data, uint32_t next, uint32_t last);
 		static void WriteTriangle(std::vector<uint8_t> &destination, int offset, int indexSize, uint32_t a, uint32_t b, uint32_t c);

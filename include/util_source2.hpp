@@ -32,32 +32,14 @@ SOFTWARE.
 #include "util_source2_definitions.hpp"
 
 class VFilePtrInternal;
-namespace ufile {struct IFile;};
-namespace source2
-{
-	enum class BlockType : uint8_t
-	{
-		None = 0,
-		RERL = 1,
-		REDI,
-		NTRO,
-		DATA,
-		VBIB,
-		VXVS,
-		SNAP,
-		CTRL,
-		MDAT,
-		MRPH,
-		MBUF,
-		ANIM,
-		ASEQ,
-		AGRP,
-		PHYS
-	};
+namespace ufile {
+	struct IFile;
+};
+namespace source2 {
+	enum class BlockType : uint8_t { None = 0, RERL = 1, REDI, NTRO, DATA, VBIB, VXVS, SNAP, CTRL, MDAT, MRPH, MBUF, ANIM, ASEQ, AGRP, PHYS };
 	DLLUS2 std::string to_string(BlockType blockType);
 
-	enum VTexFormat : uint8_t
-	{
+	enum VTexFormat : uint8_t {
 		UNKNOWN = 0,
 		DXT1 = 1,
 		DXT5 = 2,
@@ -90,31 +72,13 @@ namespace source2
 	};
 	DLLUS2 std::string to_string(VTexFormat blockType);
 
-	enum class VTexFlags : uint16_t
-	{
-		None = 0u,
-		SUGGEST_CLAMPS = 0x00000001,
-		SUGGEST_CLAMPT = 0x00000002,
-		SUGGEST_CLAMPU = 0x00000004,
-		NO_LOD = 0x00000008,
-		CUBE_TEXTURE = 0x00000010,
-		VOLUME_TEXTURE = 0x00000020,
-		TEXTURE_ARRAY = 0x00000040
-	};
+	enum class VTexFlags : uint16_t { None = 0u, SUGGEST_CLAMPS = 0x00000001, SUGGEST_CLAMPT = 0x00000002, SUGGEST_CLAMPU = 0x00000004, NO_LOD = 0x00000008, CUBE_TEXTURE = 0x00000010, VOLUME_TEXTURE = 0x00000020, TEXTURE_ARRAY = 0x00000040 };
 	DLLUS2 std::string to_string(VTexFlags blockType);
 
-	enum class VTexExtraData : uint32_t
-	{
-		UNKNOWN = 0,
-		FALLBACK_BITS = 1,
-		SHEET = 2,
-		FILL_TO_POWER_OF_TWO = 3,
-		COMPRESSED_MIP_SIZE = 4
-	};
+	enum class VTexExtraData : uint32_t { UNKNOWN = 0, FALLBACK_BITS = 1, SHEET = 2, FILL_TO_POWER_OF_TWO = 3, COMPRESSED_MIP_SIZE = 4 };
 	DLLUS2 std::string to_string(VTexExtraData blockType);
 
-	enum class ResourceType : uint16_t
-	{
+	enum class ResourceType : uint16_t {
 		Unknown = 0u,
 		Animation,
 		AnimationGroup,
@@ -150,8 +114,7 @@ namespace source2
 	};
 	DLLUS2 std::string to_string(ResourceType blockType);
 
-	enum class REDIStruct : uint8_t
-	{
+	enum class REDIStruct : uint8_t {
 		InputDependencies,
 		AdditionalInputDependencies,
 		ArgumentDependencies,
@@ -167,9 +130,11 @@ namespace source2
 	};
 	DLLUS2 std::string to_string(REDIStruct blockType);
 
-	namespace resource {class Resource;};
-	DLLUS2 std::shared_ptr<resource::Resource> load_resource(ufile::IFile &file,const std::function<std::unique_ptr<ufile::IFile>(const std::string&)> &fAssetLoader=nullptr);
-	DLLUS2 void debug_print(resource::Resource &resource,std::stringstream &ss);
+	namespace resource {
+		class Resource;
+	};
+	DLLUS2 std::shared_ptr<resource::Resource> load_resource(ufile::IFile &file, const std::function<std::unique_ptr<ufile::IFile>(const std::string &)> &fAssetLoader = nullptr);
+	DLLUS2 void debug_print(resource::Resource &resource, std::stringstream &ss);
 };
 
 #endif
