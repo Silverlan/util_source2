@@ -12,7 +12,7 @@ set(PROJ_NAME util_source2)
 pr_add_library(${PROJ_NAME} ${LIB_TYPE})
 
 pr_add_dependency(${PROJ_NAME} vfilesystem TARGET PUBLIC)
-pr_add_external_dependency(${PROJ_NAME} lz4 LIBRARY)
+pr_add_dependency(${PROJ_NAME} lz4 TARGET)
 
 pr_add_headers(${PROJ_NAME} "include/")
 pr_add_sources(${PROJ_NAME} "src/")
