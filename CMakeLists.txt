@@ -14,8 +14,7 @@ pr_add_library(${PROJ_NAME} ${LIB_TYPE})
 pr_add_dependency(${PROJ_NAME} vfilesystem TARGET PUBLIC)
 pr_add_dependency(${PROJ_NAME} lz4 TARGET)
 
-pr_add_headers(${PROJ_NAME} "include/")
-pr_add_sources(${PROJ_NAME} "src/")
+pr_init_module(${PROJ_NAME})
 
 if(NOT ${UTIL_SOURCE2_STATIC})
 	pr_add_compile_definitions(${PROJ_NAME} -DUS2_SHARED -DUS2_EXPORT -DSHUTIL_STATIC -DMUTIL_STATIC -DVFILESYSTEM_STATIC)
