@@ -1,6 +1,7 @@
 module;
 
 #include <string>
+#include <vector>
 
 module source2;
 

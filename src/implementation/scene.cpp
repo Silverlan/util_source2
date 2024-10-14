@@ -1,3 +1,8 @@
+module;
+
+#include <vector>
+#include <memory>
+
 module source2;
 
 using namespace source2;

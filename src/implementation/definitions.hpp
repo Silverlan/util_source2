@@ -22,6 +22,7 @@
 #endif
 
 #include <array>
+#include <cinttypes>
 
 class DataStream;
 class VFilePtrInternal;

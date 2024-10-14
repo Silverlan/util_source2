@@ -1,6 +1,10 @@
 module;
 
 #include <string>
+#include <vector>
+#include <optional>
+#include <cinttypes>
+#include <unordered_map>
 
 module source2;
 

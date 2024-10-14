@@ -2,6 +2,7 @@ module;
 
 #include <sharedutils/datastream.h>
 #include <mathutil/uvec.h>
+#include <optional>
 
 module source2;
 

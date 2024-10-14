@@ -28,6 +28,7 @@ module;
 #include <string>
 #include <vector>
 #include <optional>
+#include <memory>
 #include <unordered_map>
 #include <mathutil/uvec.h>
 #include <mathutil/umat.h>
