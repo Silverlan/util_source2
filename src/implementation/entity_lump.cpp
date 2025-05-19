@@ -36,6 +36,8 @@ std::optional<std::string> resource::EntityProperty::ToString() const
 		}
 	case Type::String:
 		return GetData<std::string>("");
+	default:
+		break;
 	}
 	return {};
 }

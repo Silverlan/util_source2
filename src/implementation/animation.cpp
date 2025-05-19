@@ -16,6 +16,8 @@ int32_t resource::AnimDecoder::GetSize(AnimDecoderType t)
 	case AnimDecoderType::CCompressedAnimVector3:
 	case AnimDecoderType::CCompressedAnimQuaternion:
 		return 6;
+	default:
+		break;
 	}
 
 	return 0;
@@ -207,6 +209,8 @@ void resource::Animation::ReadSegment(int64_t frame, IKeyValueCollection &segmen
 		case AnimDecoderType::CCompressedAnimQuaternion:
 			if(channelAttribute == "Angle")
 				outFrame.SetRotation(boneNames.at(bone), ReadQuaternion(ds));
+			break;
+		default:
 			break;
 		}
 	}

@@ -55,6 +55,8 @@ std::string source2::to_string(REDIStruct blockType)
 		return "ExtraFloatData";
 	case REDIStruct::ExtraStringData:
 		return "ExtraStringData";
+	default:
+		break;
 	}
 	return "Invalid";
 }
@@ -125,6 +127,8 @@ std::string source2::to_string(ResourceType blockType)
 		return "ParticleSnapshot";
 	case ResourceType::Map:
 		return "Map";
+	default:
+		break;
 	}
 	return "Invalid";
 }
@@ -141,6 +145,8 @@ std::string source2::to_string(VTexExtraData blockType)
 		return "FILL_TO_POWER_OF_TWO";
 	case VTexExtraData::COMPRESSED_MIP_SIZE:
 		return "COMPRESSED_MIP_SIZE";
+	default:
+		break;
 	}
 	return "Invalid";
 }
@@ -163,6 +169,8 @@ std::string source2::to_string(VTexFlags blockType)
 		return "VOLUME_TEXTURE";
 	case VTexFlags::TEXTURE_ARRAY:
 		return "TEXTURE_ARRAY";
+	default:
+		break;
 	}
 	return "Invalid";
 }
@@ -227,6 +235,8 @@ std::string source2::to_string(VTexFormat blockType)
 		return "ATI1N";
 	case VTexFormat::BGRA8888:
 		return "BGRA8888";
+	default:
+		break;
 	}
 	return "Invalid";
 }
@@ -265,6 +275,8 @@ std::string source2::to_string(BlockType blockType)
 		return "AGRP";
 	case BlockType::PHYS:
 		return "PHYS";
+	default:
+		break;
 	}
 	return "Invalid";
 }

@@ -338,6 +338,8 @@ export namespace source2::resource {
 				}
 			case Type::String:
 				return cast_to_type<std::string, T>(*static_cast<std::string *>(data.get()));
+			default:
+				break;
 			}
 			return {};
 		}
@@ -739,6 +741,8 @@ export namespace source2::resource {
 		case KVType::ARRAY:
 		case KVType::ARRAY_TYPED:
 			return cast_to_type<IKeyValueCollection, T>(*static_cast<const KVObject *>(v0.GetObject()));
+		default:
+			break;
 		}
 		return {};
 	}
