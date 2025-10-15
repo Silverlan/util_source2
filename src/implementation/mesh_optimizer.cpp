@@ -4,8 +4,8 @@
 
 module;
 
-#include <sharedutils/datastream.h>
 #include <span>
+#include <string>
 #include <stdexcept>
 
 module source2;

@@ -4,10 +4,9 @@
 
 module;
 
-#include <fsys/filesystem.h>
-#include <sharedutils/util_string.h>
-#include <mathutil/uvec.h>
 #include "definitions.hpp"
+#include <memory>
+#include <string>
 
 module source2;
 

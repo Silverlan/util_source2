@@ -4,9 +4,10 @@
 
 module;
 
-#include <sharedutils/util_ifile.hpp>
-#include <fsys/filesystem.h>
 #include <cstring>
+#include <memory>
+#include <stdexcept>
+#include <string>
 
 module source2;
 

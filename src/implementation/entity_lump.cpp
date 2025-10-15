@@ -3,9 +3,10 @@
 
 module;
 
-#include <sharedutils/datastream.h>
-#include <mathutil/uvec.h>
 #include <optional>
+#include <string>
+#include <memory>
+#include <stdexcept>
 
 module source2;
 

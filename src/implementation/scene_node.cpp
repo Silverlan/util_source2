@@ -5,7 +5,6 @@ module;
 
 #include <string>
 #include <memory>
-#include <mathutil/uvec.h>
 
 module source2;
 

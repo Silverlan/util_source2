@@ -9,9 +9,6 @@ module;
 #include <optional>
 #include <memory>
 #include <unordered_map>
-#include <mathutil/uvec.h>
-#include <mathutil/umat.h>
-#include <sharedutils/util_string.h>
 #include "definitions.hpp"
 
 #undef GetObject
@@ -20,6 +17,7 @@ export module source2:resource_data;
 
 import :block;
 import :resource_edit_info;
+import pragma.string;
 
 export namespace source2::resource {
 	class IKeyValueCollection;

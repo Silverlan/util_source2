@@ -14,6 +14,8 @@ module;
 
 export module source2:mesh_optimizer;
 
+export import pragma.util;
+
 export namespace source2::resource {
 	class DLLUS2 MeshOptimizerVertexDecoder {
 	  public:

@@ -6,9 +6,10 @@ module;
 
 #include <algorithm>
 #include <array>
-#include <sharedutils/util_string.h>
-#include <fsys/filesystem.h>
-#include <fsys/ifile.hpp>
+#include <string>
+#include <memory>
+#include <functional>
+#include <stdexcept>
 
 module source2;
 

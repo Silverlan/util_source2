@@ -13,6 +13,8 @@ module;
 
 export module source2:impl;
 
+export import pragma.filesystem;
+
 export namespace source2::resource {
 	std::string read_offset_string(ufile::IFile &f);
 };

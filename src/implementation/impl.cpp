@@ -4,8 +4,7 @@
 
 module;
 
-#include <fsys/filesystem.h>
-#include <sharedutils/util_ifile.hpp>
+#include <string>
 
 module source2;
 

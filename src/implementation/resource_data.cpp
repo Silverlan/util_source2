@@ -4,14 +4,13 @@
 
 module;
 
-#include <fsys/filesystem.h>
-#include <sharedutils/util.h>
-#include <sharedutils/datastream.h>
-#include <sharedutils/util_ifile.hpp>
-#include <mathutil/uvec.h>
 #include <lz4.h>
-
-#undef GetObject
+#include <string>
+#include <memory>
+#include <stdexcept>
+#ifdef _WIN32
+#include <Windows.h>
+#endif
 
 module source2;
 
@@ -22,6 +21,9 @@ using namespace source2;
 #ifdef __linux__
 using byte = uint8_t;
 #endif
+
+#undef GetObject
+#undef max
 
 std::string resource::to_string(KVType type)
 {

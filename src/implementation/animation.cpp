@@ -3,8 +3,8 @@
 
 module;
 
-#include <sharedutils/datastream.h>
-#include <mathutil/uquat.h>
+#include <memory>
+#include <string>
 
 module source2;
 
