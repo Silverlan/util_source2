@@ -3,6 +3,10 @@
 
 module;
 
+#include <unordered_map>
+
+#include <vector>
+
 #include <optional>
 #include <string>
 #include <memory>
@@ -99,7 +103,7 @@ std::vector<std::shared_ptr<resource::Entity>> resource::EntityLump::GetEntities
 }
 std::shared_ptr<resource::Entity> resource::EntityLump::ParseEntityProperties(const std::vector<uint8_t> &bytes) const
 {
-	DataStream ds {const_cast<uint8_t *>(bytes.data()), static_cast<uint32_t>(bytes.size())};
+	util::DataStream ds {const_cast<uint8_t *>(bytes.data()), static_cast<uint32_t>(bytes.size())};
 	ds->SetOffset(0);
 	auto a = ds->Read<uint32_t>();
 	if(a != 1)
@@ -120,7 +124,7 @@ std::shared_ptr<resource::Entity> resource::EntityLump::ParseEntityProperties(co
 	}
 	return Entity::Create(properties);
 }
-void resource::EntityLump::ReadTypedValue(DataStream &ds, uint32_t keyHash, const std::optional<std::string> &keyName, std::unordered_map<uint32_t, EntityProperty> &properties) const
+void resource::EntityLump::ReadTypedValue(util::DataStream &ds, uint32_t keyHash, const std::optional<std::string> &keyName, std::unordered_map<uint32_t, EntityProperty> &properties) const
 {
 	auto type = ds->Read<EntityProperty::Type>();
 	EntityProperty property {};

@@ -3,6 +3,8 @@
 
 module;
 
+#include <unordered_map>
+
 #include <string>
 
 module source2;

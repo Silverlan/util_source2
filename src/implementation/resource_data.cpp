@@ -4,10 +4,17 @@
 
 module;
 
+#include <algorithm>
+
+#include <cstring>
+
 #include <lz4.h>
 #include <string>
 #include <memory>
 #include <stdexcept>
+#include <cmath>
+#include <vector>
+#include <unordered_map>
 #ifdef _WIN32
 #include <Windows.h>
 #endif
@@ -864,7 +871,7 @@ static std::array<uint8_t, 16> BPTCWeights4 = {0, 4, 9, 13, 17, 21, 26, 30, 34, 
 
 static uint16_t BPTCInterpolateFactor(int weight, int e0, int e1) { return (uint16_t)((((64 - weight) * e0) + (weight * e1) + 32) >> 6); }
 
-void resource::Texture::UncompressBC7(uint32_t RowBytes, DataStream &ds, std::vector<uint8_t> &data, int w, int h, bool hemiOctRB, bool invert)
+void resource::Texture::UncompressBC7(uint32_t RowBytes, util::DataStream &ds, std::vector<uint8_t> &data, int w, int h, bool hemiOctRB, bool invert)
 {
 	auto blockCountX = (w + 3) / 4;
 	auto blockCountY = (h + 3) / 4;
@@ -1437,7 +1444,7 @@ void resource::BinaryKV3::Read(const Resource &resource, ufile::IFile &f)
 {
 	f.Seek(GetOffset());
 
-	DataStream ds {};
+	util::DataStream ds {};
 	auto magic = f.Read<uint32_t>();
 	if(magic == MAGIC2) {
 		ReadVersion2(f, ds);
@@ -1503,7 +1510,7 @@ void resource::BinaryKV3::DebugPrint(std::stringstream &ss, const std::string &t
 	ss << t << "}\n";
 }
 BlockType resource::BinaryKV3::GetType() const { return m_blockType; }
-void resource::BinaryKV3::ReadVersion2(ufile::IFile &f, DataStream &outData)
+void resource::BinaryKV3::ReadVersion2(ufile::IFile &f, util::DataStream &outData)
 {
 	auto format = f.Read<util::GUID>();
 
@@ -1562,7 +1569,7 @@ void resource::BinaryKV3::ReadVersion2(ufile::IFile &f, DataStream &outData)
 
 	m_data = ParseBinaryKV3(outData, nullptr, true);
 }
-void resource::BinaryKV3::BlockDecompress(ufile::IFile &f, DataStream &outData)
+void resource::BinaryKV3::BlockDecompress(ufile::IFile &f, util::DataStream &outData)
 {
 	// It is flags, right?
 	auto flags = f.Read<std::array<uint8_t, 4>>();
@@ -1650,7 +1657,7 @@ void resource::BinaryKV3::BlockDecompress(ufile::IFile &f, DataStream &outData)
 	outData->SetOffset(0);
 }
 
-void resource::BinaryKV3::DecompressLZ4(ufile::IFile &f, DataStream &outData)
+void resource::BinaryKV3::DecompressLZ4(ufile::IFile &f, util::DataStream &outData)
 {
 	auto uncompressedSize = f.Read<uint32_t>();
 	auto compressedSize = GetSize() - (f.Tell() - GetOffset());
@@ -1667,7 +1674,7 @@ void resource::BinaryKV3::DecompressLZ4(ufile::IFile &f, DataStream &outData)
 	outData->SetOffset(0);
 }
 
-std::pair<resource::KVType, resource::KVFlag> resource::BinaryKV3::ReadType(DataStream &ds)
+std::pair<resource::KVType, resource::KVFlag> resource::BinaryKV3::ReadType(util::DataStream &ds)
 {
 	uint8_t databyte;
 	if(m_hasTypesArray)
@@ -1761,7 +1768,7 @@ template<class TKVValue>
 	return std::static_pointer_cast<resource::KVValue>(p);
 }
 #endif
-std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const std::string &name, KVType datatype, KVFlag flagInfo, DataStream ds, std::shared_ptr<KVObject> parent)
+std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const std::string &name, KVType datatype, KVFlag flagInfo, util::DataStream ds, std::shared_ptr<KVObject> parent)
 {
 	auto currentOffset = ds->GetOffset();
 
@@ -1959,7 +1966,7 @@ std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const s
 	return parent ? parent : nullptr;
 }
 
-std::shared_ptr<resource::KVObject> resource::BinaryKV3::ParseBinaryKV3(DataStream &ds, std::shared_ptr<KVObject> parent, bool inArray)
+std::shared_ptr<resource::KVObject> resource::BinaryKV3::ParseBinaryKV3(util::DataStream &ds, std::shared_ptr<KVObject> parent, bool inArray)
 {
 	std::string name {};
 	if(!inArray) {

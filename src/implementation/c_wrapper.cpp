@@ -3,11 +3,14 @@
 
 module;
 
+#include <vector>
+
 #include "definitions.hpp"
 #include <type_traits>
 #include <memory>
 #include <cstring>
 #include <string>
+#include <optional>
 
 module source2;
 

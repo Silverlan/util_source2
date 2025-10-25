@@ -4,7 +4,10 @@
 
 module;
 
+#include <vector>
+
 #include <sstream>
+#include <cinttypes>
 
 module source2;
 

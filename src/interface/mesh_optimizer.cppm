@@ -42,8 +42,8 @@ export namespace source2::resource {
 
 		static void PushEdgeFifo(std::array<std::pair<uint32_t, uint32_t>, 16> &fifo, int &offset, uint32_t a, uint32_t b);
 		static void PushVertexFifo(std::array<uint32_t, 16> &fifo, int &offset, uint32_t v, bool cond = true);
-		static uint32_t DecodeVByte(DataStream &data);
-		static uint32_t DecodeIndex(DataStream &data, uint32_t next, uint32_t last);
+		static uint32_t DecodeVByte(util::DataStream &data);
+		static uint32_t DecodeIndex(util::DataStream &data, uint32_t next, uint32_t last);
 		static void WriteTriangle(std::vector<uint8_t> &destination, int offset, int indexSize, uint32_t a, uint32_t b, uint32_t c);
 		static std::vector<uint8_t> DecodeIndexBuffer(int indexCount, int indexSize, std::vector<uint8_t> &buffer);
 	};

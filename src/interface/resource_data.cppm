@@ -362,7 +362,7 @@ export namespace source2::resource {
 		std::vector<std::shared_ptr<Entity>> GetEntities() const;
 	  private:
 		std::shared_ptr<Entity> ParseEntityProperties(const std::vector<uint8_t> &bytes) const;
-		void ReadTypedValue(DataStream &ds, uint32_t keyHash, const std::optional<std::string> &keyName, std::unordered_map<uint32_t, EntityProperty> &properties) const;
+		void ReadTypedValue(util::DataStream &ds, uint32_t keyHash, const std::optional<std::string> &keyName, std::unordered_map<uint32_t, EntityProperty> &properties) const;
 	};
 
 	class DLLUS2 SoundStackScript : public ResourceData {};
@@ -430,7 +430,7 @@ export namespace source2::resource {
 		Animation(IKeyValueCollection &animDesc, IKeyValueCollection &decodeKey, const std::vector<AnimDecoderType> &decoderArray, const std::vector<IKeyValueCollection *> &segmentArray);
 		void ConstructFromDesc(IKeyValueCollection &animDesc, IKeyValueCollection &decodeKey, const std::vector<AnimDecoderType> &decoderArray, const std::vector<IKeyValueCollection *> &segmentArray);
 		void ReadSegment(int64_t frame, IKeyValueCollection &segment, IKeyValueCollection &decodeKey, const std::vector<AnimDecoderType> &decoderArray, Frame &outFrame, uint32_t numFrames);
-		static Quat ReadQuaternion(DataStream &ds);
+		static Quat ReadQuaternion(util::DataStream &ds);
 		static std::vector<AnimDecoderType> MakeDecoderArray(const std::vector<IKeyValueCollection *> &decoderArray);
 		std::string m_name;
 		float m_fps = 0.f;
@@ -588,7 +588,7 @@ export namespace source2::resource {
 
 	class DLLUS2 Texture : public ResourceData {
 	  public:
-		static void UncompressBC7(uint32_t RowBytes, DataStream &ds, std::vector<uint8_t> &data, int w, int h, bool hemiOctRB, bool invert);
+		static void UncompressBC7(uint32_t RowBytes, util::DataStream &ds, std::vector<uint8_t> &data, int w, int h, bool hemiOctRB, bool invert);
 		uint16_t GetVersion() const;
 		uint16_t GetWidth() const;
 		uint16_t GetHeight() const;
@@ -811,12 +811,12 @@ export namespace source2::resource {
 		//	static std::shared_ptr<KVValue> MakeValueFromPtr(KVType type, nullptr_t nptr, KVFlag flag);
 		static KVType ConvertBinaryOnlyKVType(KVType type);
 		static std::shared_ptr<KVValue> MakeValue(KVType type, std::shared_ptr<void> data, KVFlag flag);
-		void ReadVersion2(ufile::IFile &f, DataStream &outData);
-		void BlockDecompress(ufile::IFile &f, DataStream &outData);
-		void DecompressLZ4(ufile::IFile &f, DataStream &outData);
-		std::pair<KVType, KVFlag> ReadType(DataStream &ds);
-		std::shared_ptr<KVObject> ReadBinaryValue(const std::string &name, KVType datatype, KVFlag flagInfo, DataStream ds, std::shared_ptr<KVObject> optParent);
-		std::shared_ptr<KVObject> ParseBinaryKV3(DataStream &ds, std::shared_ptr<KVObject> optParent, bool inArray = false);
+		void ReadVersion2(ufile::IFile &f, util::DataStream &outData);
+		void BlockDecompress(ufile::IFile &f, util::DataStream &outData);
+		void DecompressLZ4(ufile::IFile &f, util::DataStream &outData);
+		std::pair<KVType, KVFlag> ReadType(util::DataStream &ds);
+		std::shared_ptr<KVObject> ReadBinaryValue(const std::string &name, KVType datatype, KVFlag flagInfo, util::DataStream ds, std::shared_ptr<KVObject> optParent);
+		std::shared_ptr<KVObject> ParseBinaryKV3(util::DataStream &ds, std::shared_ptr<KVObject> optParent, bool inArray = false);
 		int64_t m_currentBinaryBytesOffset = -1;
 		int64_t m_currentEightBytesOffset = -1;
 		int64_t m_currentTypeIndex = 0;
