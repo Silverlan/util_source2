@@ -4,11 +4,6 @@
 
 module;
 
-#include <string>
-#include <memory>
-#include <optional>
-#include <unordered_map>
-#include <cinttypes>
 #include "definitions.hpp"
 
 export module source2:impl;

@@ -4,12 +4,6 @@
 
 module;
 
-#include <algorithm>
-#include <array>
-#include <string>
-#include <memory>
-#include <functional>
-#include <stdexcept>
 
 module source2;
 

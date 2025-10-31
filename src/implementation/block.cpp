@@ -4,7 +4,6 @@
 
 module;
 
-#include <cinttypes>
 
 module source2;
 

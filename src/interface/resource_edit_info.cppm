@@ -4,10 +4,6 @@
 
 module;
 
-#include <array>
-#include <memory>
-#include <string>
-#include <vector>
 #include "definitions.hpp"
 
 export module source2:resource_edit_info;

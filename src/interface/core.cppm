@@ -4,9 +4,6 @@
 
 module;
 
-#include <memory>
-#include <sstream>
-#include <functional>
 #include "definitions.hpp"
 
 export module source2:core;

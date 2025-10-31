@@ -4,11 +4,10 @@
 
 module;
 
-#include <string>
-#include <vector>
-#include <cinttypes>
 
 export module source2:murmurhash;
+
+export import std.compat;
 
 export namespace source2 {
 	namespace murmur2 {

@@ -4,12 +4,6 @@
 
 module;
 
-#include <cinttypes>
-#include <vector>
-#include <string>
-#include <array>
-#include <cinttypes>
-#include <stdexcept>
 #include "definitions.hpp"
 
 export module source2:mesh_optimizer;

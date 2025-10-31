@@ -3,8 +3,6 @@
 
 module;
 
-#include <string>
-#include <memory>
 
 module source2;
 

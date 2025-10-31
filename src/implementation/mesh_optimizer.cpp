@@ -4,14 +4,8 @@
 
 module;
 
-#include <vector>
 
-#include <cinttypes>
-#include <cstring>
 
-#include <span>
-#include <string>
-#include <stdexcept>
 
 module source2;
 

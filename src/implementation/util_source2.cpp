@@ -4,11 +4,8 @@
 
 module;
 
-#include <functional>
 
 #include "definitions.hpp"
-#include <memory>
-#include <string>
 
 module source2;
 

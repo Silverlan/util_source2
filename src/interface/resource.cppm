@@ -4,10 +4,6 @@
 
 module;
 
-#include <vector>
-#include <string>
-#include <functional>
-#include <memory>
 #include "definitions.hpp"
 
 export module source2:resource;

@@ -4,12 +4,7 @@
 
 module;
 
-#include <vector>
 
-#include <cstring>
-#include <memory>
-#include <stdexcept>
-#include <string>
 
 module source2;
 

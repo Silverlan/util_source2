@@ -4,17 +4,9 @@
 
 module;
 
-#include <algorithm>
 
-#include <cstring>
 
 #include <lz4.h>
-#include <string>
-#include <memory>
-#include <stdexcept>
-#include <cmath>
-#include <vector>
-#include <unordered_map>
 #ifdef _WIN32
 #include <Windows.h>
 #endif
