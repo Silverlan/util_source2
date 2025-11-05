@@ -3,9 +3,6 @@
 
 module;
 
-
-
-
 module source2;
 
 import :impl;

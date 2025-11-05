@@ -3,7 +3,6 @@
 
 module;
 
-
 module source2;
 
 import :resource_data;

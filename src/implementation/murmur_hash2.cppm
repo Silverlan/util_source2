@@ -4,7 +4,6 @@
 
 module;
 
-
 export module source2:murmurhash;
 
 export import std.compat;

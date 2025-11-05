@@ -4,8 +4,6 @@
 
 module;
 
-
-
 #include <lz4.h>
 #ifdef _WIN32
 #include <Windows.h>

@@ -4,7 +4,6 @@
 
 module;
 
-
 #include "definitions.hpp"
 
 module source2;
