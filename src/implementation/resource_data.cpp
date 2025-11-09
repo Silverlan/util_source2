@@ -308,10 +308,11 @@ std::shared_ptr<resource::NTROValue> resource::NTRO::ReadField(const Resource &r
 
 	case DataType::Int32:
 		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<int32_t>>(field.type, f.Read<int32_t>(), pointer));
-
+		
 	case DataType::UInt32:
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<uint32_t>>(field.type, f.Read<uint32_t>(), pointer));
-
+		// This causes a compiler error under clang-22
+		// return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<uint32_t>>(field.type, f.Read<uint32_t>(), pointer));
+		return std::static_pointer_cast<resource::NTROValue>(std::shared_ptr<TNTROValue<uint32_t>>{new TNTROValue<uint32_t>{field.type, f.Read<uint32_t>(), pointer}});
 	case DataType::Float:
 		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<float>>(field.type, f.Read<float>(), pointer));
 
@@ -359,6 +360,7 @@ std::shared_ptr<resource::NTROValue> resource::NTRO::ReadField(const Resource &r
 	}
 	return nullptr;
 }
+
 std::shared_ptr<resource::NTROStruct> resource::NTRO::ReadStructure(const Resource &resource, const ResourceIntrospectionManifest::ResourceDiskStruct &refStruct, int64_t startingOffset, ufile::IFile &f)
 {
 	auto structEntry = std::make_shared<NTROStruct>(refStruct.name);
@@ -1141,6 +1143,7 @@ void resource::Texture::Read(const Resource &resource, ufile::IFile &f)
 	}
 	m_dataOffset = GetOffset() + GetSize();
 }
+
 void resource::Texture::DebugPrint(std::stringstream &ss, const std::string &t) const
 {
 	ss << t << "Texture = {\n";
@@ -1868,13 +1871,15 @@ std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const s
 		}
 	case KVType::DOUBLE_ZERO:
 		{
-			auto v = MakeValue(datatype, std::make_shared<double>(0.0), flagInfo);
+			// std::make_shared<double> causes a compiler error with clang-22 here
+			auto v = MakeValue(datatype, std::shared_ptr<double>{new double {0.0}}, flagInfo);
 			parent->AddProperty(name, *v);
 			break;
 		}
 	case KVType::DOUBLE_ONE:
 		{
-			auto v = MakeValue(datatype, std::make_shared<double>(1.0), flagInfo);
+			// std::make_shared<double> causes a compiler error with clang-22 here
+			auto v = MakeValue(datatype, std::shared_ptr<double>{new double {1.0}}, flagInfo);
 			parent->AddProperty(name, *v);
 			break;
 		}
@@ -1966,4 +1971,25 @@ std::shared_ptr<resource::KVObject> resource::BinaryKV3::ParseBinaryKV3(util::Da
 
 	auto type = ReadType(ds);
 	return ReadBinaryValue(name, type.first, type.second, ds, parent);
+}
+
+std::optional<Mat4> resource::cast_to_mat4(NTROValue &v0)
+{
+	auto *vAr = dynamic_cast<NTROArray *>(&v0);
+	if(vAr == nullptr)
+		return {};
+	auto &contents = vAr->GetContents();
+	if(contents.size() != 4)
+		return {};
+	Mat4 result {};
+	for(uint8_t i = 0; i < 4; ++i) {
+		auto &val = contents.at(i);
+		if(val->type != DataType::Vector4D)
+			return {};
+		auto v = cast_to_type<Vector4>(*val);
+		if(v.has_value() == false)
+			return {};
+		result[i] = *v;
+	}
+	return result;
 }

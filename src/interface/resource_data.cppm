@@ -944,63 +944,51 @@ void source2::resource::TNTROValue<T>::DebugPrint(std::stringstream &ss, const s
 
 //////////////
 
+namespace source2::resource {
+	std::optional<Mat4> cast_to_mat4(NTROValue &v0);
+}
 template<typename T>
 std::optional<T> source2::resource::cast_to_type(NTROValue &v0)
 {
-	if constexpr(std::is_same_v<T, Mat4>) {
-		auto *vAr = dynamic_cast<NTROArray *>(&v0);
-		if(vAr == nullptr)
-			return {};
-		auto &contents = vAr->GetContents();
-		if(contents.size() != 4)
-			return {};
-		Mat4 result {};
-		for(uint8_t i = 0; i < 4; ++i) {
-			auto &val = contents.at(i);
-			if(val->type != DataType::Vector4D)
-				return {};
-			auto v = cast_to_type<Vector4>(*val);
-			if(v.has_value() == false)
-				return {};
-			result[i] = *v;
-		}
-		return result;
-	}
-	switch(v0.type) {
-	//case DataType::Null:
-	//	return {};
-	case DataType::Byte:
-		return cast_to_type<uint8_t, T>(static_cast<TNTROValue<uint8_t> &>(v0).value);
-	case DataType::SByte:
-		return cast_to_type<int8_t, T>(static_cast<TNTROValue<int8_t> &>(v0).value);
-	case DataType::Boolean:
-		return cast_to_type<bool, T>(static_cast<TNTROValue<bool> &>(v0).value);
-	case DataType::Int16:
-		return cast_to_type<int16_t, T>(static_cast<TNTROValue<int16_t> &>(v0).value);
-	case DataType::UInt16:
-		return cast_to_type<uint16_t, T>(static_cast<TNTROValue<uint16_t> &>(v0).value);
-	case DataType::Int32:
-		return cast_to_type<int32_t, T>(static_cast<TNTROValue<int32_t> &>(v0).value);
-	case DataType::UInt32:
-	case DataType::Enum:
-		return cast_to_type<uint32_t, T>(static_cast<TNTROValue<uint32_t> &>(v0).value);
-	case DataType::Float:
-		return cast_to_type<float, T>(static_cast<TNTROValue<float> &>(v0).value);
-	case DataType::Int64:
-		return cast_to_type<int64_t, T>(static_cast<TNTROValue<int64_t> &>(v0).value);
-	case DataType::UInt64:
-		return cast_to_type<uint64_t, T>(static_cast<TNTROValue<uint64_t> &>(v0).value);
-	case DataType::String:
-	case DataType::ExternalReference:
-		return cast_to_type<std::string, T>(static_cast<TNTROValue<std::string> &>(v0).value);
-	case DataType::Struct:
-		return cast_to_type<IKeyValueCollection *, T>(static_cast<TNTROValue<std::shared_ptr<NTROStruct>> &>(v0).value.get());
-	default:
-		{
-			auto *vStrct = dynamic_cast<TNTROValue<NTROStruct> *>(&v0);
-			if(vStrct == nullptr)
-				return {};
-			return cast_to_type<IKeyValueCollection, T>(vStrct->value);
+	if constexpr(std::is_same_v<T, Mat4>)
+		return cast_to_mat4(v0);
+	else {
+		switch(v0.type) {
+		//case DataType::Null:
+		//	return {};
+		case DataType::Byte:
+			return cast_to_type<uint8_t, T>(static_cast<TNTROValue<uint8_t> &>(v0).value);
+		case DataType::SByte:
+			return cast_to_type<int8_t, T>(static_cast<TNTROValue<int8_t> &>(v0).value);
+		case DataType::Boolean:
+			return cast_to_type<bool, T>(static_cast<TNTROValue<bool> &>(v0).value);
+		case DataType::Int16:
+			return cast_to_type<int16_t, T>(static_cast<TNTROValue<int16_t> &>(v0).value);
+		case DataType::UInt16:
+			return cast_to_type<uint16_t, T>(static_cast<TNTROValue<uint16_t> &>(v0).value);
+		case DataType::Int32:
+			return cast_to_type<int32_t, T>(static_cast<TNTROValue<int32_t> &>(v0).value);
+		case DataType::UInt32:
+		case DataType::Enum:
+			return cast_to_type<uint32_t, T>(static_cast<TNTROValue<uint32_t> &>(v0).value);
+		case DataType::Float:
+			return cast_to_type<float, T>(static_cast<TNTROValue<float> &>(v0).value);
+		case DataType::Int64:
+			return cast_to_type<int64_t, T>(static_cast<TNTROValue<int64_t> &>(v0).value);
+		case DataType::UInt64:
+			return cast_to_type<uint64_t, T>(static_cast<TNTROValue<uint64_t> &>(v0).value);
+		case DataType::String:
+		case DataType::ExternalReference:
+			return cast_to_type<std::string, T>(static_cast<TNTROValue<std::string> &>(v0).value);
+		case DataType::Struct:
+			return cast_to_type<IKeyValueCollection *, T>(static_cast<TNTROValue<std::shared_ptr<NTROStruct>> &>(v0).value.get());
+		default:
+			{
+				auto *vStrct = dynamic_cast<TNTROValue<NTROStruct> *>(&v0);
+				if(vStrct == nullptr)
+					return {};
+				return cast_to_type<IKeyValueCollection, T>(vStrct->value);
+			}
 		}
 	}
 	return {};
