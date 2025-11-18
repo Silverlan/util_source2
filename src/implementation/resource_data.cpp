@@ -308,11 +308,11 @@ std::shared_ptr<resource::NTROValue> resource::NTRO::ReadField(const Resource &r
 
 	case DataType::Int32:
 		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<int32_t>>(field.type, f.Read<int32_t>(), pointer));
-		
+
 	case DataType::UInt32:
 		// This causes a compiler error under clang-22
 		// return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<uint32_t>>(field.type, f.Read<uint32_t>(), pointer));
-		return std::static_pointer_cast<resource::NTROValue>(std::shared_ptr<TNTROValue<uint32_t>>{new TNTROValue<uint32_t>{field.type, f.Read<uint32_t>(), pointer}});
+		return std::static_pointer_cast<resource::NTROValue>(std::shared_ptr<TNTROValue<uint32_t>> {new TNTROValue<uint32_t> {field.type, f.Read<uint32_t>(), pointer}});
 	case DataType::Float:
 		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<float>>(field.type, f.Read<float>(), pointer));
 
@@ -1872,14 +1872,14 @@ std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const s
 	case KVType::DOUBLE_ZERO:
 		{
 			// std::make_shared<double> causes a compiler error with clang-22 here
-			auto v = MakeValue(datatype, std::shared_ptr<double>{new double {0.0}}, flagInfo);
+			auto v = MakeValue(datatype, std::shared_ptr<double> {new double {0.0}}, flagInfo);
 			parent->AddProperty(name, *v);
 			break;
 		}
 	case KVType::DOUBLE_ONE:
 		{
 			// std::make_shared<double> causes a compiler error with clang-22 here
-			auto v = MakeValue(datatype, std::shared_ptr<double>{new double {1.0}}, flagInfo);
+			auto v = MakeValue(datatype, std::shared_ptr<double> {new double {1.0}}, flagInfo);
 			parent->AddProperty(name, *v);
 			break;
 		}
