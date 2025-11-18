@@ -4,10 +4,6 @@
 
 module;
 
-#include <sharedutils/util_string.h>
-#include <sharedutils/util_ifile.hpp>
-#include <fsys/filesystem.h>
-
 module source2;
 
 import :impl;

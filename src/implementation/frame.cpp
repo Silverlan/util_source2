@@ -3,9 +3,6 @@
 
 module;
 
-#include <string>
-#include <mathutil/uvec.h>
-
 module source2;
 
 using namespace source2;

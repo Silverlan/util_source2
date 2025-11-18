@@ -23,13 +23,4 @@
 #include <array>
 #include <cinttypes>
 
-class DataStream;
-class VFilePtrInternal;
-namespace ufile {
-	struct IFile;
-};
-namespace util {
-	using GUID = std::array<uint8_t, 16>;
-};
-
 #endif

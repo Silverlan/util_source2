@@ -4,14 +4,6 @@
 
 module;
 
-#include <string>
-#include <vector>
-#include <optional>
-#include <memory>
-#include <unordered_map>
-#include <mathutil/uvec.h>
-#include <mathutil/umat.h>
-#include <sharedutils/util_string.h>
 #include "definitions.hpp"
 
 #undef GetObject
@@ -20,6 +12,7 @@ export module source2:resource_data;
 
 import :block;
 import :resource_edit_info;
+import pragma.string;
 
 export namespace source2::resource {
 	class IKeyValueCollection;
@@ -364,7 +357,7 @@ export namespace source2::resource {
 		std::vector<std::shared_ptr<Entity>> GetEntities() const;
 	  private:
 		std::shared_ptr<Entity> ParseEntityProperties(const std::vector<uint8_t> &bytes) const;
-		void ReadTypedValue(DataStream &ds, uint32_t keyHash, const std::optional<std::string> &keyName, std::unordered_map<uint32_t, EntityProperty> &properties) const;
+		void ReadTypedValue(util::DataStream &ds, uint32_t keyHash, const std::optional<std::string> &keyName, std::unordered_map<uint32_t, EntityProperty> &properties) const;
 	};
 
 	class DLLUS2 SoundStackScript : public ResourceData {};
@@ -432,7 +425,7 @@ export namespace source2::resource {
 		Animation(IKeyValueCollection &animDesc, IKeyValueCollection &decodeKey, const std::vector<AnimDecoderType> &decoderArray, const std::vector<IKeyValueCollection *> &segmentArray);
 		void ConstructFromDesc(IKeyValueCollection &animDesc, IKeyValueCollection &decodeKey, const std::vector<AnimDecoderType> &decoderArray, const std::vector<IKeyValueCollection *> &segmentArray);
 		void ReadSegment(int64_t frame, IKeyValueCollection &segment, IKeyValueCollection &decodeKey, const std::vector<AnimDecoderType> &decoderArray, Frame &outFrame, uint32_t numFrames);
-		static Quat ReadQuaternion(DataStream &ds);
+		static Quat ReadQuaternion(util::DataStream &ds);
 		static std::vector<AnimDecoderType> MakeDecoderArray(const std::vector<IKeyValueCollection *> &decoderArray);
 		std::string m_name;
 		float m_fps = 0.f;
@@ -590,7 +583,7 @@ export namespace source2::resource {
 
 	class DLLUS2 Texture : public ResourceData {
 	  public:
-		static void UncompressBC7(uint32_t RowBytes, DataStream &ds, std::vector<uint8_t> &data, int w, int h, bool hemiOctRB, bool invert);
+		static void UncompressBC7(uint32_t RowBytes, util::DataStream &ds, std::vector<uint8_t> &data, int w, int h, bool hemiOctRB, bool invert);
 		uint16_t GetVersion() const;
 		uint16_t GetWidth() const;
 		uint16_t GetHeight() const;
@@ -813,12 +806,12 @@ export namespace source2::resource {
 		//	static std::shared_ptr<KVValue> MakeValueFromPtr(KVType type, nullptr_t nptr, KVFlag flag);
 		static KVType ConvertBinaryOnlyKVType(KVType type);
 		static std::shared_ptr<KVValue> MakeValue(KVType type, std::shared_ptr<void> data, KVFlag flag);
-		void ReadVersion2(ufile::IFile &f, DataStream &outData);
-		void BlockDecompress(ufile::IFile &f, DataStream &outData);
-		void DecompressLZ4(ufile::IFile &f, DataStream &outData);
-		std::pair<KVType, KVFlag> ReadType(DataStream &ds);
-		std::shared_ptr<KVObject> ReadBinaryValue(const std::string &name, KVType datatype, KVFlag flagInfo, DataStream ds, std::shared_ptr<KVObject> optParent);
-		std::shared_ptr<KVObject> ParseBinaryKV3(DataStream &ds, std::shared_ptr<KVObject> optParent, bool inArray = false);
+		void ReadVersion2(ufile::IFile &f, util::DataStream &outData);
+		void BlockDecompress(ufile::IFile &f, util::DataStream &outData);
+		void DecompressLZ4(ufile::IFile &f, util::DataStream &outData);
+		std::pair<KVType, KVFlag> ReadType(util::DataStream &ds);
+		std::shared_ptr<KVObject> ReadBinaryValue(const std::string &name, KVType datatype, KVFlag flagInfo, util::DataStream ds, std::shared_ptr<KVObject> optParent);
+		std::shared_ptr<KVObject> ParseBinaryKV3(util::DataStream &ds, std::shared_ptr<KVObject> optParent, bool inArray = false);
 		int64_t m_currentBinaryBytesOffset = -1;
 		int64_t m_currentEightBytesOffset = -1;
 		int64_t m_currentTypeIndex = 0;
@@ -951,63 +944,51 @@ void source2::resource::TNTROValue<T>::DebugPrint(std::stringstream &ss, const s
 
 //////////////
 
+namespace source2::resource {
+	std::optional<Mat4> cast_to_mat4(NTROValue &v0);
+}
 template<typename T>
 std::optional<T> source2::resource::cast_to_type(NTROValue &v0)
 {
-	if constexpr(std::is_same_v<T, Mat4>) {
-		auto *vAr = dynamic_cast<NTROArray *>(&v0);
-		if(vAr == nullptr)
-			return {};
-		auto &contents = vAr->GetContents();
-		if(contents.size() != 4)
-			return {};
-		Mat4 result {};
-		for(uint8_t i = 0; i < 4; ++i) {
-			auto &val = contents.at(i);
-			if(val->type != DataType::Vector4D)
-				return {};
-			auto v = cast_to_type<Vector4>(*val);
-			if(v.has_value() == false)
-				return {};
-			result[i] = *v;
-		}
-		return result;
-	}
-	switch(v0.type) {
-	//case DataType::Null:
-	//	return {};
-	case DataType::Byte:
-		return cast_to_type<uint8_t, T>(static_cast<TNTROValue<uint8_t> &>(v0).value);
-	case DataType::SByte:
-		return cast_to_type<int8_t, T>(static_cast<TNTROValue<int8_t> &>(v0).value);
-	case DataType::Boolean:
-		return cast_to_type<bool, T>(static_cast<TNTROValue<bool> &>(v0).value);
-	case DataType::Int16:
-		return cast_to_type<int16_t, T>(static_cast<TNTROValue<int16_t> &>(v0).value);
-	case DataType::UInt16:
-		return cast_to_type<uint16_t, T>(static_cast<TNTROValue<uint16_t> &>(v0).value);
-	case DataType::Int32:
-		return cast_to_type<int32_t, T>(static_cast<TNTROValue<int32_t> &>(v0).value);
-	case DataType::UInt32:
-	case DataType::Enum:
-		return cast_to_type<uint32_t, T>(static_cast<TNTROValue<uint32_t> &>(v0).value);
-	case DataType::Float:
-		return cast_to_type<float, T>(static_cast<TNTROValue<float> &>(v0).value);
-	case DataType::Int64:
-		return cast_to_type<int64_t, T>(static_cast<TNTROValue<int64_t> &>(v0).value);
-	case DataType::UInt64:
-		return cast_to_type<uint64_t, T>(static_cast<TNTROValue<uint64_t> &>(v0).value);
-	case DataType::String:
-	case DataType::ExternalReference:
-		return cast_to_type<std::string, T>(static_cast<TNTROValue<std::string> &>(v0).value);
-	case DataType::Struct:
-		return cast_to_type<IKeyValueCollection *, T>(static_cast<TNTROValue<std::shared_ptr<NTROStruct>> &>(v0).value.get());
-	default:
-		{
-			auto *vStrct = dynamic_cast<TNTROValue<NTROStruct> *>(&v0);
-			if(vStrct == nullptr)
-				return {};
-			return cast_to_type<IKeyValueCollection, T>(vStrct->value);
+	if constexpr(std::is_same_v<T, Mat4>)
+		return cast_to_mat4(v0);
+	else {
+		switch(v0.type) {
+		//case DataType::Null:
+		//	return {};
+		case DataType::Byte:
+			return cast_to_type<uint8_t, T>(static_cast<TNTROValue<uint8_t> &>(v0).value);
+		case DataType::SByte:
+			return cast_to_type<int8_t, T>(static_cast<TNTROValue<int8_t> &>(v0).value);
+		case DataType::Boolean:
+			return cast_to_type<bool, T>(static_cast<TNTROValue<bool> &>(v0).value);
+		case DataType::Int16:
+			return cast_to_type<int16_t, T>(static_cast<TNTROValue<int16_t> &>(v0).value);
+		case DataType::UInt16:
+			return cast_to_type<uint16_t, T>(static_cast<TNTROValue<uint16_t> &>(v0).value);
+		case DataType::Int32:
+			return cast_to_type<int32_t, T>(static_cast<TNTROValue<int32_t> &>(v0).value);
+		case DataType::UInt32:
+		case DataType::Enum:
+			return cast_to_type<uint32_t, T>(static_cast<TNTROValue<uint32_t> &>(v0).value);
+		case DataType::Float:
+			return cast_to_type<float, T>(static_cast<TNTROValue<float> &>(v0).value);
+		case DataType::Int64:
+			return cast_to_type<int64_t, T>(static_cast<TNTROValue<int64_t> &>(v0).value);
+		case DataType::UInt64:
+			return cast_to_type<uint64_t, T>(static_cast<TNTROValue<uint64_t> &>(v0).value);
+		case DataType::String:
+		case DataType::ExternalReference:
+			return cast_to_type<std::string, T>(static_cast<TNTROValue<std::string> &>(v0).value);
+		case DataType::Struct:
+			return cast_to_type<IKeyValueCollection *, T>(static_cast<TNTROValue<std::shared_ptr<NTROStruct>> &>(v0).value.get());
+		default:
+			{
+				auto *vStrct = dynamic_cast<TNTROValue<NTROStruct> *>(&v0);
+				if(vStrct == nullptr)
+					return {};
+				return cast_to_type<IKeyValueCollection, T>(vStrct->value);
+			}
 		}
 	}
 	return {};

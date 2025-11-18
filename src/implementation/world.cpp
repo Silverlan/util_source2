@@ -3,9 +3,6 @@
 
 module;
 
-#include <string>
-#include <vector>
-
 module source2;
 
 import :resource_data;

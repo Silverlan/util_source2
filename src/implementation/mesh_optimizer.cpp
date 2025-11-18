@@ -4,10 +4,6 @@
 
 module;
 
-#include <sharedutils/datastream.h>
-#include <span>
-#include <stdexcept>
-
 module source2;
 
 using namespace source2;
@@ -246,7 +242,7 @@ void resource::MeshOptimizerIndexDecoder::PushVertexFifo(std::array<uint32_t, 16
 	offset = (offset + (cond ? 1 : 0)) & 15;
 }
 
-uint32_t resource::MeshOptimizerIndexDecoder::DecodeVByte(DataStream &data)
+uint32_t resource::MeshOptimizerIndexDecoder::DecodeVByte(util::DataStream &data)
 {
 	auto lead = static_cast<uint32_t>(data->Read<uint8_t>());
 
@@ -270,7 +266,7 @@ uint32_t resource::MeshOptimizerIndexDecoder::DecodeVByte(DataStream &data)
 	return result;
 }
 
-uint32_t resource::MeshOptimizerIndexDecoder::DecodeIndex(DataStream &data, uint32_t next, uint32_t last)
+uint32_t resource::MeshOptimizerIndexDecoder::DecodeIndex(util::DataStream &data, uint32_t next, uint32_t last)
 {
 	auto v = DecodeVByte(data);
 	auto d = (uint32_t)((v >> 1) ^ -(v & 1));
@@ -323,7 +319,7 @@ std::vector<uint8_t> resource::MeshOptimizerIndexDecoder::DecodeIndexBuffer(int 
 	std::vector<uint8_t> destination {};
 	destination.resize(indexCount * indexSize);
 
-	DataStream ds {data.data(), static_cast<uint32_t>(data.size() * sizeof(data.front()))};
+	util::DataStream ds {data.data(), static_cast<uint32_t>(data.size() * sizeof(data.front()))};
 	ds->SetOffset(0);
 	for(auto i = 0; i < indexCount; i += 3) {
 		auto codetri = buffer[bufferIndex++];

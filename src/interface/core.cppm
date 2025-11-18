@@ -4,12 +4,11 @@
 
 module;
 
-#include <memory>
-#include <sstream>
-#include <functional>
 #include "definitions.hpp"
 
 export module source2:core;
+
+export import pragma.filesystem;
 
 export namespace source2 {
 	enum class BlockType : uint8_t { None = 0, RERL = 1, REDI, NTRO, DATA, VBIB, VXVS, SNAP, CTRL, MDAT, MRPH, MBUF, ANIM, ASEQ, AGRP, PHYS };

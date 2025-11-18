@@ -3,10 +3,6 @@
 
 module;
 
-#include <string>
-#include <vector>
-#include <cinttypes>
-
 module source2;
 
 import :murmurhash;

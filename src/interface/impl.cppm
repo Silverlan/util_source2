@@ -4,14 +4,11 @@
 
 module;
 
-#include <string>
-#include <memory>
-#include <optional>
-#include <unordered_map>
-#include <cinttypes>
 #include "definitions.hpp"
 
 export module source2:impl;
+
+export import pragma.filesystem;
 
 export namespace source2::resource {
 	std::string read_offset_string(ufile::IFile &f);

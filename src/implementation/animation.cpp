@@ -3,9 +3,6 @@
 
 module;
 
-#include <sharedutils/datastream.h>
-#include <mathutil/uquat.h>
-
 module source2;
 
 using namespace source2;
@@ -93,7 +90,7 @@ resource::Animation::Animation(IKeyValueCollection &animDesc, IKeyValueCollectio
 const std::string &resource::Animation::GetName() const { return m_name; }
 float resource::Animation::GetFPS() const { return m_fps; }
 const std::vector<std::shared_ptr<resource::Frame>> &resource::Animation::GetFrames() const { return m_frames; }
-Quat resource::Animation::ReadQuaternion(DataStream &ds)
+Quat resource::Animation::ReadQuaternion(util::DataStream &ds)
 {
 	auto bytes = ds->Read<std::array<uint8_t, 6>>();
 
@@ -151,7 +148,7 @@ void resource::Animation::ReadSegment(int64_t frame, IKeyValueCollection &segmen
 	auto *container = segment.FindBinaryBlob("m_container");
 	if(container == nullptr)
 		return;
-	DataStream ds {container->data(), static_cast<uint32_t>(container->size())};
+	util::DataStream ds {container->data(), static_cast<uint32_t>(container->size())};
 	ds->SetOffset(0);
 	auto elementIndexArray = dataChannel->FindArrayValues<int32_t>("m_nElementIndexArray");
 	auto numChannelElements = decodeKey.FindValue<int32_t>("m_nChannelElements", 0);

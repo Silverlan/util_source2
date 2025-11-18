@@ -4,15 +4,12 @@
 
 module;
 
-#include <array>
-#include <memory>
-#include <string>
-#include <mathutil/umath.h>
 #include "definitions.hpp"
 
 export module source2:resource_edit_info;
 
 import :block;
+import pragma.math;
 
 export namespace source2::resource {
 	class REDIBlock;

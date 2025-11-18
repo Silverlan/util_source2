@@ -3,10 +3,6 @@
 
 module;
 
-#include <string>
-#include <memory>
-#include <mathutil/umat.h>
-
 module source2;
 
 using namespace source2;

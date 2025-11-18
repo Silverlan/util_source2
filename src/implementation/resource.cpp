@@ -4,12 +4,6 @@
 
 module;
 
-#include <algorithm>
-#include <array>
-#include <sharedutils/util_string.h>
-#include <fsys/filesystem.h>
-#include <fsys/ifile.hpp>
-
 module source2;
 
 using namespace source2;

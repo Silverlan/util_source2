@@ -4,14 +4,10 @@
 
 module;
 
-#include <fsys/filesystem.h>
-#include <sharedutils/util.h>
-#include <sharedutils/datastream.h>
-#include <sharedutils/util_ifile.hpp>
-#include <mathutil/uvec.h>
 #include <lz4.h>
-
-#undef GetObject
+#ifdef _WIN32
+#include <Windows.h>
+#endif
 
 module source2;
 
@@ -22,6 +18,9 @@ using namespace source2;
 #ifdef __linux__
 using byte = uint8_t;
 #endif
+
+#undef GetObject
+#undef max
 
 std::string resource::to_string(KVType type)
 {
@@ -311,8 +310,9 @@ std::shared_ptr<resource::NTROValue> resource::NTRO::ReadField(const Resource &r
 		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<int32_t>>(field.type, f.Read<int32_t>(), pointer));
 
 	case DataType::UInt32:
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<uint32_t>>(field.type, f.Read<uint32_t>(), pointer));
-
+		// This causes a compiler error under clang-22
+		// return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<uint32_t>>(field.type, f.Read<uint32_t>(), pointer));
+		return std::static_pointer_cast<resource::NTROValue>(std::shared_ptr<TNTROValue<uint32_t>> {new TNTROValue<uint32_t> {field.type, f.Read<uint32_t>(), pointer}});
 	case DataType::Float:
 		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<float>>(field.type, f.Read<float>(), pointer));
 
@@ -360,6 +360,7 @@ std::shared_ptr<resource::NTROValue> resource::NTRO::ReadField(const Resource &r
 	}
 	return nullptr;
 }
+
 std::shared_ptr<resource::NTROStruct> resource::NTRO::ReadStructure(const Resource &resource, const ResourceIntrospectionManifest::ResourceDiskStruct &refStruct, int64_t startingOffset, ufile::IFile &f)
 {
 	auto structEntry = std::make_shared<NTROStruct>(refStruct.name);
@@ -862,7 +863,7 @@ static std::array<uint8_t, 16> BPTCWeights4 = {0, 4, 9, 13, 17, 21, 26, 30, 34, 
 
 static uint16_t BPTCInterpolateFactor(int weight, int e0, int e1) { return (uint16_t)((((64 - weight) * e0) + (weight * e1) + 32) >> 6); }
 
-void resource::Texture::UncompressBC7(uint32_t RowBytes, DataStream &ds, std::vector<uint8_t> &data, int w, int h, bool hemiOctRB, bool invert)
+void resource::Texture::UncompressBC7(uint32_t RowBytes, util::DataStream &ds, std::vector<uint8_t> &data, int w, int h, bool hemiOctRB, bool invert)
 {
 	auto blockCountX = (w + 3) / 4;
 	auto blockCountY = (h + 3) / 4;
@@ -1142,6 +1143,7 @@ void resource::Texture::Read(const Resource &resource, ufile::IFile &f)
 	}
 	m_dataOffset = GetOffset() + GetSize();
 }
+
 void resource::Texture::DebugPrint(std::stringstream &ss, const std::string &t) const
 {
 	ss << t << "Texture = {\n";
@@ -1435,7 +1437,7 @@ void resource::BinaryKV3::Read(const Resource &resource, ufile::IFile &f)
 {
 	f.Seek(GetOffset());
 
-	DataStream ds {};
+	util::DataStream ds {};
 	auto magic = f.Read<uint32_t>();
 	if(magic == MAGIC2) {
 		ReadVersion2(f, ds);
@@ -1501,7 +1503,7 @@ void resource::BinaryKV3::DebugPrint(std::stringstream &ss, const std::string &t
 	ss << t << "}\n";
 }
 BlockType resource::BinaryKV3::GetType() const { return m_blockType; }
-void resource::BinaryKV3::ReadVersion2(ufile::IFile &f, DataStream &outData)
+void resource::BinaryKV3::ReadVersion2(ufile::IFile &f, util::DataStream &outData)
 {
 	auto format = f.Read<util::GUID>();
 
@@ -1560,7 +1562,7 @@ void resource::BinaryKV3::ReadVersion2(ufile::IFile &f, DataStream &outData)
 
 	m_data = ParseBinaryKV3(outData, nullptr, true);
 }
-void resource::BinaryKV3::BlockDecompress(ufile::IFile &f, DataStream &outData)
+void resource::BinaryKV3::BlockDecompress(ufile::IFile &f, util::DataStream &outData)
 {
 	// It is flags, right?
 	auto flags = f.Read<std::array<uint8_t, 4>>();
@@ -1648,7 +1650,7 @@ void resource::BinaryKV3::BlockDecompress(ufile::IFile &f, DataStream &outData)
 	outData->SetOffset(0);
 }
 
-void resource::BinaryKV3::DecompressLZ4(ufile::IFile &f, DataStream &outData)
+void resource::BinaryKV3::DecompressLZ4(ufile::IFile &f, util::DataStream &outData)
 {
 	auto uncompressedSize = f.Read<uint32_t>();
 	auto compressedSize = GetSize() - (f.Tell() - GetOffset());
@@ -1665,7 +1667,7 @@ void resource::BinaryKV3::DecompressLZ4(ufile::IFile &f, DataStream &outData)
 	outData->SetOffset(0);
 }
 
-std::pair<resource::KVType, resource::KVFlag> resource::BinaryKV3::ReadType(DataStream &ds)
+std::pair<resource::KVType, resource::KVFlag> resource::BinaryKV3::ReadType(util::DataStream &ds)
 {
 	uint8_t databyte;
 	if(m_hasTypesArray)
@@ -1759,7 +1761,7 @@ template<class TKVValue>
 	return std::static_pointer_cast<resource::KVValue>(p);
 }
 #endif
-std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const std::string &name, KVType datatype, KVFlag flagInfo, DataStream ds, std::shared_ptr<KVObject> parent)
+std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const std::string &name, KVType datatype, KVFlag flagInfo, util::DataStream ds, std::shared_ptr<KVObject> parent)
 {
 	auto currentOffset = ds->GetOffset();
 
@@ -1869,13 +1871,15 @@ std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const s
 		}
 	case KVType::DOUBLE_ZERO:
 		{
-			auto v = MakeValue(datatype, std::make_shared<double>(0.0), flagInfo);
+			// std::make_shared<double> causes a compiler error with clang-22 here
+			auto v = MakeValue(datatype, std::shared_ptr<double> {new double {0.0}}, flagInfo);
 			parent->AddProperty(name, *v);
 			break;
 		}
 	case KVType::DOUBLE_ONE:
 		{
-			auto v = MakeValue(datatype, std::make_shared<double>(1.0), flagInfo);
+			// std::make_shared<double> causes a compiler error with clang-22 here
+			auto v = MakeValue(datatype, std::shared_ptr<double> {new double {1.0}}, flagInfo);
 			parent->AddProperty(name, *v);
 			break;
 		}
@@ -1957,7 +1961,7 @@ std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const s
 	return parent ? parent : nullptr;
 }
 
-std::shared_ptr<resource::KVObject> resource::BinaryKV3::ParseBinaryKV3(DataStream &ds, std::shared_ptr<KVObject> parent, bool inArray)
+std::shared_ptr<resource::KVObject> resource::BinaryKV3::ParseBinaryKV3(util::DataStream &ds, std::shared_ptr<KVObject> parent, bool inArray)
 {
 	std::string name {};
 	if(!inArray) {
@@ -1967,4 +1971,25 @@ std::shared_ptr<resource::KVObject> resource::BinaryKV3::ParseBinaryKV3(DataStre
 
 	auto type = ReadType(ds);
 	return ReadBinaryValue(name, type.first, type.second, ds, parent);
+}
+
+std::optional<Mat4> resource::cast_to_mat4(NTROValue &v0)
+{
+	auto *vAr = dynamic_cast<NTROArray *>(&v0);
+	if(vAr == nullptr)
+		return {};
+	auto &contents = vAr->GetContents();
+	if(contents.size() != 4)
+		return {};
+	Mat4 result {};
+	for(uint8_t i = 0; i < 4; ++i) {
+		auto &val = contents.at(i);
+		if(val->type != DataType::Vector4D)
+			return {};
+		auto v = cast_to_type<Vector4>(*val);
+		if(v.has_value() == false)
+			return {};
+		result[i] = *v;
+	}
+	return result;
 }
