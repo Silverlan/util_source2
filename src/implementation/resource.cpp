@@ -12,10 +12,10 @@ resource::Resource::Resource(const std::function<std::unique_ptr<ufile::IFile>(c
 {
 	if(m_assetFileLoader == nullptr) {
 		m_assetFileLoader = [](const std::string &path) -> std::unique_ptr<ufile::IFile> {
-			auto f = FileManager::OpenFile(path.c_str(), "rb");
+			auto f = pragma::fs::open_file(path.c_str(), pragma::fs::FileMode::Read | pragma::fs::FileMode::Binary);
 			if(!f)
 				return nullptr;
-			return std::make_unique<fsys::File>(f);
+			return std::make_unique<pragma::fs::File>(f);
 		};
 	}
 }
@@ -71,12 +71,12 @@ bool resource::Resource::Read(ufile::IFile &f)
 		auto position = f.Tell();
 		auto offset = position + f.Read<uint32_t>();
 		auto size = f.Read<uint32_t>();
-		std::shared_ptr<source2::resource::Block> block = nullptr;
-		if(size >= 4 && ustring::compare(blockType.data(), "DATA", true, blockType.size()) && !IsHandledResourceType(m_resourceType)) {
+		std::shared_ptr<Block> block = nullptr;
+		if(size >= 4 && pragma::string::compare(blockType.data(), "DATA", true, blockType.size()) && !IsHandledResourceType(m_resourceType)) {
 			f.Seek(offset);
 			auto magic = f.Read<uint32_t>();
-			if(magic == source2::resource::BinaryKV3::MAGIC || magic == source2::resource::BinaryKV3::MAGIC2)
-				block = std::make_shared<source2::resource::BinaryKV3>();
+			if(magic == BinaryKV3::MAGIC || magic == BinaryKV3::MAGIC2)
+				block = std::make_shared<BinaryKV3>();
 			f.Seek(position);
 		}
 		auto strBlockType = std::string {blockType.data(), blockType.size()};
@@ -120,29 +120,29 @@ bool resource::Resource::Read(ufile::IFile &f)
 	}
 	for(auto &block : m_blocks) {
 		auto type = block->GetType();
-		if(type != source2::BlockType::REDI && type != source2::BlockType::NTRO)
+		if(type != BlockType::REDI && type != BlockType::NTRO)
 			block->Read(*this, f);
 	}
 	return true;
 }
-std::shared_ptr<source2::resource::Block> resource::Resource::ConstructFromType(std::string input)
+std::shared_ptr<resource::Block> resource::Resource::ConstructFromType(std::string input)
 {
 	if(input == "DATA")
 		return ConstructResourceType();
 	else if(input == "REDI")
-		return std::make_shared<source2::resource::ResourceEditInfo>();
+		return std::make_shared<ResourceEditInfo>();
 	else if(input == "RERL")
-		return std::make_shared<source2::resource::ResourceExtRefList>();
+		return std::make_shared<ResourceExtRefList>();
 	else if(input == "VBIB")
-		return std::make_shared<source2::resource::VBIB>();
+		return std::make_shared<VBIB>();
 	else if(input == "NTRO")
-		return std::make_shared<source2::resource::ResourceIntrospectionManifest>();
+		return std::make_shared<ResourceIntrospectionManifest>();
 	else if(input == "VXVS")
-		return std::make_shared<source2::resource::VXVS>();
+		return std::make_shared<VXVS>();
 	else if(input == "SNAP")
-		return std::make_shared<source2::resource::SNAP>();
+		return std::make_shared<SNAP>();
 	else if(input == "MBUF")
-		return std::make_shared<source2::resource::MBUF>();
+		return std::make_shared<MBUF>();
 	else if(input == "CTRL")
 		return std::make_shared<BinaryKV3>(BlockType::CTRL);
 	else if(input == "MDAT")
@@ -161,7 +161,7 @@ std::shared_ptr<source2::resource::Block> resource::Resource::ConstructFromType(
 	return nullptr;
 }
 uint32_t resource::Resource::GetVersion() const { return m_version; }
-std::shared_ptr<source2::resource::ResourceData> resource::Resource::ConstructResourceType()
+std::shared_ptr<resource::ResourceData> resource::Resource::ConstructResourceType()
 {
 	switch(m_resourceType) {
 	case ResourceType::Panorama:
@@ -170,53 +170,53 @@ std::shared_ptr<source2::resource::ResourceData> resource::Resource::ConstructRe
 	case ResourceType::PanoramaLayout:
 	case ResourceType::PanoramaDynamicImages:
 	case ResourceType::PanoramaVectorGraphic:
-		return std::make_shared<source2::resource::Panorama>();
+		return std::make_shared<Panorama>();
 
 	case ResourceType::Sound:
-		return std::make_shared<source2::resource::Sound>();
+		return std::make_shared<Sound>();
 
 	case ResourceType::Texture:
-		return std::make_shared<source2::resource::Texture>();
+		return std::make_shared<Texture>();
 
 	case ResourceType::Model:
-		return std::make_shared<source2::resource::Model>(*this);
+		return std::make_shared<Model>(*this);
 
 	case ResourceType::World:
-		return std::make_shared<source2::resource::World>(*this);
+		return std::make_shared<World>(*this);
 
 		//case ResourceType::Map:
 		//	return std::make_shared<source2::resource::Map>(*this);
 
 	case ResourceType::WorldNode:
-		return std::make_shared<source2::resource::WorldNode>();
+		return std::make_shared<WorldNode>();
 
 	case ResourceType::EntityLump:
-		return std::make_shared<source2::resource::EntityLump>();
+		return std::make_shared<EntityLump>();
 
 	case ResourceType::Material:
-		return std::make_shared<source2::resource::Material>();
+		return std::make_shared<Material>();
 
 	case ResourceType::SoundEventScript:
-		return std::make_shared<source2::resource::SoundEventScript>();
+		return std::make_shared<SoundEventScript>();
 
 	case ResourceType::SoundStackScript:
-		return std::make_shared<source2::resource::SoundStackScript>();
+		return std::make_shared<SoundStackScript>();
 
 	case ResourceType::Particle:
-		return std::make_shared<source2::resource::ParticleSystem>();
+		return std::make_shared<ParticleSystem>();
 
 	case ResourceType::Mesh:
 		if(m_version == 0)
 			break;
-		return std::make_shared<source2::resource::BinaryKV3>();
+		return std::make_shared<BinaryKV3>();
 	}
 
 	if(GetIntrospectionManifest())
-		return std::make_shared<source2::resource::NTRO>();
-	return std::make_shared<source2::resource::ResourceData>();
+		return std::make_shared<NTRO>();
+	return std::make_shared<ResourceData>();
 }
-resource::ResourceIntrospectionManifest *resource::Resource::GetIntrospectionManifest() { return static_cast<resource::ResourceIntrospectionManifest *>(FindBlock(BlockType::NTRO)); }
+resource::ResourceIntrospectionManifest *resource::Resource::GetIntrospectionManifest() { return static_cast<ResourceIntrospectionManifest *>(FindBlock(BlockType::NTRO)); }
 const resource::ResourceIntrospectionManifest *resource::Resource::GetIntrospectionManifest() const { return const_cast<Resource *>(this)->GetIntrospectionManifest(); }
 
-resource::ResourceExtRefList *resource::Resource::GetExternalReferences() { return static_cast<resource::ResourceExtRefList *>(FindBlock(BlockType::RERL)); }
+resource::ResourceExtRefList *resource::Resource::GetExternalReferences() { return static_cast<ResourceExtRefList *>(FindBlock(BlockType::RERL)); }
 const resource::ResourceExtRefList *resource::Resource::GetExternalReferences() const { return const_cast<Resource *>(this)->GetExternalReferences(); }

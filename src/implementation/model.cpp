@@ -45,7 +45,7 @@ std::vector<resource::Skin> resource::Model::GetSkins()
 #endif
 	if(data == nullptr)
 		return {};
-	std::vector<resource::Skin> skins {};
+	std::vector<Skin> skins {};
 	auto matGroups = data->FindArrayValues<IKeyValueCollection *>("m_materialGroups");
 	for(auto *matGroup : matGroups) {
 		auto name = IKeyValueCollection::FindValue<std::string>(*matGroup, "m_name");
@@ -59,7 +59,7 @@ std::vector<resource::Skin> resource::Model::GetSkins()
 std::shared_ptr<resource::Skeleton> resource::Model::GetSkeleton() const { return Skeleton::Create(*const_cast<Model *>(this)->GetData()); }
 std::vector<std::shared_ptr<resource::Mesh>> resource::Model::GetEmbeddedMeshes() const
 {
-	std::vector<std::shared_ptr<resource::Mesh>> meshes {};
+	std::vector<std::shared_ptr<Mesh>> meshes {};
 	auto *blockCtrl = dynamic_cast<BinaryKV3 *>(m_resource.FindBlock(BlockType::CTRL));
 	if(blockCtrl == nullptr)
 		return meshes;
@@ -67,8 +67,8 @@ std::vector<std::shared_ptr<resource::Mesh>> resource::Model::GetEmbeddedMeshes(
 	for(auto *embeddedMesh : embeddedMeshes) {
 		auto dataBlockIndex = IKeyValueCollection::FindValue<int32_t>(*embeddedMesh, "data_block");
 		auto vbibBlockIndex = IKeyValueCollection::FindValue<int32_t>(*embeddedMesh, "vbib_block");
-		auto *dataBlock = dataBlockIndex.has_value() ? dynamic_cast<source2::resource::ResourceData *>(m_resource.GetBlock(*dataBlockIndex).get()) : nullptr;
-		auto *vbibBlock = vbibBlockIndex.has_value() ? dynamic_cast<source2::resource::VBIB *>(m_resource.GetBlock(*vbibBlockIndex).get()) : nullptr;
+		auto *dataBlock = dataBlockIndex.has_value() ? dynamic_cast<ResourceData *>(m_resource.GetBlock(*dataBlockIndex).get()) : nullptr;
+		auto *vbibBlock = vbibBlockIndex.has_value() ? dynamic_cast<VBIB *>(m_resource.GetBlock(*vbibBlockIndex).get()) : nullptr;
 		if(!dataBlock || !vbibBlock)
 			continue;
 		auto meshIndex = embeddedMesh->FindValue<int64_t>("mesh_index", -1);
@@ -85,7 +85,7 @@ std::vector<std::string> resource::Model::GetReferencedMeshNames()
 void resource::Model::GetReferencedAnimationGroupNames() {}
 std::vector<std::shared_ptr<resource::Animation>> resource::Model::GetEmbeddedAnimations(Resource &resource)
 {
-	std::vector<std::shared_ptr<resource::Animation>> animations {};
+	std::vector<std::shared_ptr<Animation>> animations {};
 	auto *blockCtrl = dynamic_cast<BinaryKV3 *>(resource.FindBlock(BlockType::CTRL));
 	if(blockCtrl == nullptr)
 		return {};

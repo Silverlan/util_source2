@@ -85,7 +85,7 @@ void resource::ArgumentDependencies::DebugPrint(std::stringstream &ss, const std
 ResourceType resource::SpecialDependencies::DetermineResourceTypeByCompilerIdentifier(const SpecialDependency &input)
 {
 	auto identifier = input.compilerIdentifier;
-	if(ustring::compare(identifier.c_str(), "Compile", true, 7))
+	if(pragma::string::compare(identifier.c_str(), "Compile", true, 7))
 		identifier = identifier.substr(7);
 
 	// Special mappings and otherwise different identifiers

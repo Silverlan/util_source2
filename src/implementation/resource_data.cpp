@@ -194,12 +194,12 @@ void resource::NTROStruct::DebugPrint(std::stringstream &ss, const std::string &
 
 void resource::NTRO::Read(const Resource &resource, ufile::IFile &f)
 {
-	auto *block = static_cast<const ResourceIntrospectionManifest *>(resource.FindBlock(source2::BlockType::NTRO));
+	auto *block = static_cast<const ResourceIntrospectionManifest *>(resource.FindBlock(BlockType::NTRO));
 	if(block == nullptr)
 		return;
 	auto &structs = block->GetReferencedStructs();
 	if(m_structName.empty() == false) {
-		auto it = std::find_if(structs.begin(), structs.end(), [this](const source2::resource::ResourceIntrospectionManifest::ResourceDiskStruct &strct) { return strct.name == m_structName; });
+		auto it = std::find_if(structs.begin(), structs.end(), [this](const ResourceIntrospectionManifest::ResourceDiskStruct &strct) { return strct.name == m_structName; });
 		if(it == structs.end())
 			return;
 		m_output = ReadStructure(resource, *it, GetOffset(), f);
@@ -285,39 +285,39 @@ std::shared_ptr<resource::NTROValue> resource::NTRO::ReadField(const Resource &r
 			auto &refStructs = introspectionManifest->GetReferencedStructs();
 			auto it = std::find_if(refStructs.begin(), refStructs.end(), [&field](const ResourceIntrospectionManifest::ResourceDiskStruct &diskStruct) { return diskStruct.id == field.typeData; });
 			auto &newStruct = *it;
-			return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<std::shared_ptr<NTROStruct>>>(field.type, ReadStructure(resource, newStruct, f.Tell(), f), pointer));
+			return std::static_pointer_cast<NTROValue>(std::make_shared<TNTROValue<std::shared_ptr<NTROStruct>>>(field.type, ReadStructure(resource, newStruct, f.Tell(), f), pointer));
 		}
 	case DataType::Enum:
 		// TODO: Lookup in ReferencedEnums
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<uint32_t>>(field.type, f.Read<uint32_t>(), pointer));
+		return std::static_pointer_cast<NTROValue>(std::make_shared<TNTROValue<uint32_t>>(field.type, f.Read<uint32_t>(), pointer));
 
 	case DataType::SByte:
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<int8_t>>(field.type, f.Read<int8_t>(), pointer));
+		return std::static_pointer_cast<NTROValue>(std::make_shared<TNTROValue<int8_t>>(field.type, f.Read<int8_t>(), pointer));
 
 	case DataType::Byte:
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<uint8_t>>(field.type, f.Read<uint8_t>(), pointer));
+		return std::static_pointer_cast<NTROValue>(std::make_shared<TNTROValue<uint8_t>>(field.type, f.Read<uint8_t>(), pointer));
 
 	case DataType::Boolean:
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<bool>>(field.type, f.Read<uint8_t>() == 1 ? true : false, pointer));
+		return std::static_pointer_cast<NTROValue>(std::make_shared<TNTROValue<bool>>(field.type, f.Read<uint8_t>() == 1 ? true : false, pointer));
 
 	case DataType::Int16:
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<int16_t>>(field.type, f.Read<int16_t>(), pointer));
+		return std::static_pointer_cast<NTROValue>(std::make_shared<TNTROValue<int16_t>>(field.type, f.Read<int16_t>(), pointer));
 
 	case DataType::UInt16:
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<uint16_t>>(field.type, f.Read<uint16_t>(), pointer));
+		return std::static_pointer_cast<NTROValue>(std::make_shared<TNTROValue<uint16_t>>(field.type, f.Read<uint16_t>(), pointer));
 
 	case DataType::Int32:
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<int32_t>>(field.type, f.Read<int32_t>(), pointer));
+		return std::static_pointer_cast<NTROValue>(std::make_shared<TNTROValue<int32_t>>(field.type, f.Read<int32_t>(), pointer));
 
 	case DataType::UInt32:
 		// This causes a compiler error under clang-22
 		// return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<uint32_t>>(field.type, f.Read<uint32_t>(), pointer));
-		return std::static_pointer_cast<resource::NTROValue>(std::shared_ptr<TNTROValue<uint32_t>> {new TNTROValue<uint32_t> {field.type, f.Read<uint32_t>(), pointer}});
+		return std::static_pointer_cast<NTROValue>(std::shared_ptr<TNTROValue<uint32_t>> {new TNTROValue<uint32_t> {field.type, f.Read<uint32_t>(), pointer}});
 	case DataType::Float:
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<float>>(field.type, f.Read<float>(), pointer));
+		return std::static_pointer_cast<NTROValue>(std::make_shared<TNTROValue<float>>(field.type, f.Read<float>(), pointer));
 
 	case DataType::Int64:
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<int64_t>>(field.type, f.Read<int64_t>(), pointer));
+		return std::static_pointer_cast<NTROValue>(std::make_shared<TNTROValue<int64_t>>(field.type, f.Read<int64_t>(), pointer));
 
 	case DataType::ExternalReference:
 		{
@@ -330,10 +330,10 @@ std::shared_ptr<resource::NTROValue> resource::NTRO::ReadField(const Resource &r
 				if(it != refInfos.end())
 					value = it->name;
 			}
-			return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<std::string>>(field.type, value, pointer));
+			return std::static_pointer_cast<NTROValue>(std::make_shared<TNTROValue<std::string>>(field.type, value, pointer));
 		}
 	case DataType::UInt64:
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<uint64_t>>(field.type, f.Read<uint64_t>(), pointer));
+		return std::static_pointer_cast<NTROValue>(std::make_shared<TNTROValue<uint64_t>>(field.type, f.Read<uint64_t>(), pointer));
 
 	case DataType::Vector:
 		return get_float_array_ntro_value(3, field.type, pointer, f);
@@ -346,7 +346,7 @@ std::shared_ptr<resource::NTROValue> resource::NTRO::ReadField(const Resource &r
 		return get_float_array_ntro_value(4, field.type, pointer, f);
 	case DataType::String4:
 	case DataType::String:
-		return std::static_pointer_cast<resource::NTROValue>(std::make_shared<TNTROValue<std::string>>(field.type, read_offset_string(f), pointer));
+		return std::static_pointer_cast<NTROValue>(std::make_shared<TNTROValue<std::string>>(field.type, read_offset_string(f), pointer));
 
 	case DataType::Matrix2x4:
 		return get_float_array_ntro_value(8, field.type, pointer, f);
@@ -553,7 +553,7 @@ resource::KeyValuesOrNTRO::KeyValuesOrNTRO(BlockType type, const std::string &in
 resource::KeyValuesOrNTRO::KeyValuesOrNTRO() : KeyValuesOrNTRO {BlockType::DATA, ""} {}
 void resource::KeyValuesOrNTRO::Read(const Resource &resource, ufile::IFile &f)
 {
-	if(resource.FindBlock(source2::BlockType::NTRO) == nullptr) {
+	if(resource.FindBlock(BlockType::NTRO) == nullptr) {
 		auto kv3 = std::make_shared<BinaryKV3>();
 		kv3->SetOffset(GetOffset());
 		kv3->SetSize(GetSize());
@@ -863,7 +863,7 @@ static std::array<uint8_t, 16> BPTCWeights4 = {0, 4, 9, 13, 17, 21, 26, 30, 34, 
 
 static uint16_t BPTCInterpolateFactor(int weight, int e0, int e1) { return (uint16_t)((((64 - weight) * e0) + (weight * e1) + 32) >> 6); }
 
-void resource::Texture::UncompressBC7(uint32_t RowBytes, util::DataStream &ds, std::vector<uint8_t> &data, int w, int h, bool hemiOctRB, bool invert)
+void resource::Texture::UncompressBC7(uint32_t RowBytes, pragma::util::DataStream &ds, std::vector<uint8_t> &data, int w, int h, bool hemiOctRB, bool invert)
 {
 	auto blockCountX = (w + 3) / 4;
 	auto blockCountY = (h + 3) / 4;
@@ -1166,47 +1166,47 @@ void resource::Texture::DebugPrint(std::stringstream &ss, const std::string &t) 
 uint32_t resource::Texture::GetBlockSize()
 {
 	switch(m_format) {
-	case VTexFormat::DXT1:
+	case DXT1:
 		return 8;
-	case VTexFormat::DXT5:
+	case DXT5:
 		return 16;
-	case VTexFormat::RGBA8888:
+	case RGBA8888:
 		return 4;
-	case VTexFormat::R16:
+	case R16:
 		return 2;
-	case VTexFormat::RG1616:
+	case RG1616:
 		return 4;
-	case VTexFormat::RGBA16161616:
+	case RGBA16161616:
 		return 8;
-	case VTexFormat::R16F:
+	case R16F:
 		return 2;
-	case VTexFormat::RG1616F:
+	case RG1616F:
 		return 4;
-	case VTexFormat::RGBA16161616F:
+	case RGBA16161616F:
 		return 8;
-	case VTexFormat::R32F:
+	case R32F:
 		return 4;
-	case VTexFormat::RG3232F:
+	case RG3232F:
 		return 8;
-	case VTexFormat::RGB323232F:
+	case RGB323232F:
 		return 12;
-	case VTexFormat::RGBA32323232F:
+	case RGBA32323232F:
 		return 16;
-	case VTexFormat::BC6H:
+	case BC6H:
 		return 16;
-	case VTexFormat::BC7:
+	case BC7:
 		return 16;
-	case VTexFormat::IA88:
+	case IA88:
 		return 2;
-	case VTexFormat::ETC2:
+	case ETC2:
 		return 8;
-	case VTexFormat::ETC2_EAC:
+	case ETC2_EAC:
 		return 16;
-	case VTexFormat::BGRA8888:
+	case BGRA8888:
 		return 4;
-	case VTexFormat::ATI1N:
+	case ATI1N:
 		return 8;
-	case VTexFormat::ATI2N:
+	case ATI2N:
 		return 16;
 	}
 
@@ -1261,7 +1261,7 @@ uint32_t resource::Texture::CalculateBufferSizeForMipLevel(uint8_t mipLevel)
 	if(depth < 1)
 		depth = 1;
 
-	if(m_format == VTexFormat::DXT1 || m_format == VTexFormat::DXT5 || m_format == VTexFormat::BC6H || m_format == VTexFormat::BC7 || m_format == VTexFormat::ETC2 || m_format == VTexFormat::ETC2_EAC || m_format == VTexFormat::ATI1N || m_format == VTexFormat::ATI2N) {
+	if(m_format == DXT1 || m_format == DXT5 || m_format == BC6H || m_format == BC7 || m_format == ETC2 || m_format == ETC2_EAC || m_format == ATI1N || m_format == ATI2N) {
 		auto misalign = width % 4;
 
 		if(misalign > 0) {
@@ -1422,13 +1422,13 @@ void resource::KVObject::DebugPrint(std::stringstream &ss, const std::string &t)
 
 ////////////////
 
-const util::GUID source2::resource::BinaryKV3::KV3_ENCODING_BINARY_BLOCK_COMPRESSED = {0x46, 0x1A, 0x79, 0x95, 0xBC, 0x95, 0x6C, 0x4F, 0xA7, 0x0B, 0x05, 0xBC, 0xA1, 0xB7, 0xDF, 0xD2};
-const util::GUID source2::resource::BinaryKV3::KV3_ENCODING_BINARY_UNCOMPRESSED = {0x00, 0x05, 0x86, 0x1B, 0xD8, 0xF7, 0xC1, 0x40, 0xAD, 0x82, 0x75, 0xA4, 0x82, 0x67, 0xE7, 0x14};
-const util::GUID source2::resource::BinaryKV3::KV3_ENCODING_BINARY_BLOCK_LZ4 = {0x8A, 0x34, 0x47, 0x68, 0xA1, 0x63, 0x5C, 0x4F, 0xA1, 0x97, 0x53, 0x80, 0x6F, 0xD9, 0xB1, 0x19};
-const util::GUID source2::resource::BinaryKV3::KV3_FORMAT_GENERIC = {0x7C, 0x16, 0x12, 0x74, 0xE9, 0x06, 0x98, 0x46, 0xAF, 0xF2, 0xE6, 0x3E, 0xB5, 0x90, 0x37, 0xE7};
-const std::array<uint8_t, 16> source2::resource::BinaryKV3::ENCODING = {0x46, 0x1A, 0x79, 0x95, 0xBC, 0x95, 0x6C, 0x4F, 0xA7, 0x0B, 0x05, 0xBC, 0xA1, 0xB7, 0xDF, 0xD2};
-const std::array<uint8_t, 16> source2::resource::BinaryKV3::FORMAT = {0x7C, 0x16, 0x12, 0x74, 0xE9, 0x06, 0x98, 0x46, 0xAF, 0xF2, 0xE6, 0x3E, 0xB5, 0x90, 0x37, 0xE7};
-const std::array<uint8_t, 4> source2::resource::BinaryKV3::SIG = {0x56, 0x4B, 0x56, 0x03}; // VKV3 (3 isn't ascii, its 0x03)
+const pragma::util::GUID resource::BinaryKV3::KV3_ENCODING_BINARY_BLOCK_COMPRESSED = {0x46, 0x1A, 0x79, 0x95, 0xBC, 0x95, 0x6C, 0x4F, 0xA7, 0x0B, 0x05, 0xBC, 0xA1, 0xB7, 0xDF, 0xD2};
+const pragma::util::GUID resource::BinaryKV3::KV3_ENCODING_BINARY_UNCOMPRESSED = {0x00, 0x05, 0x86, 0x1B, 0xD8, 0xF7, 0xC1, 0x40, 0xAD, 0x82, 0x75, 0xA4, 0x82, 0x67, 0xE7, 0x14};
+const pragma::util::GUID resource::BinaryKV3::KV3_ENCODING_BINARY_BLOCK_LZ4 = {0x8A, 0x34, 0x47, 0x68, 0xA1, 0x63, 0x5C, 0x4F, 0xA1, 0x97, 0x53, 0x80, 0x6F, 0xD9, 0xB1, 0x19};
+const pragma::util::GUID resource::BinaryKV3::KV3_FORMAT_GENERIC = {0x7C, 0x16, 0x12, 0x74, 0xE9, 0x06, 0x98, 0x46, 0xAF, 0xF2, 0xE6, 0x3E, 0xB5, 0x90, 0x37, 0xE7};
+const std::array<uint8_t, 16> resource::BinaryKV3::ENCODING = {0x46, 0x1A, 0x79, 0x95, 0xBC, 0x95, 0x6C, 0x4F, 0xA7, 0x0B, 0x05, 0xBC, 0xA1, 0xB7, 0xDF, 0xD2};
+const std::array<uint8_t, 16> resource::BinaryKV3::FORMAT = {0x7C, 0x16, 0x12, 0x74, 0xE9, 0x06, 0x98, 0x46, 0xAF, 0xF2, 0xE6, 0x3E, 0xB5, 0x90, 0x37, 0xE7};
+const std::array<uint8_t, 4> resource::BinaryKV3::SIG = {0x56, 0x4B, 0x56, 0x03}; // VKV3 (3 isn't ascii, its 0x03)
 const std::vector<std::string> &resource::BinaryKV3::GetStringArray() const { return m_stringArray; }
 const std::shared_ptr<resource::KVObject> &resource::BinaryKV3::GetData() const { return const_cast<BinaryKV3 *>(this)->GetData(); }
 std::shared_ptr<resource::KVObject> &resource::BinaryKV3::GetData() { return m_data; }
@@ -1437,7 +1437,7 @@ void resource::BinaryKV3::Read(const Resource &resource, ufile::IFile &f)
 {
 	f.Seek(GetOffset());
 
-	util::DataStream ds {};
+	pragma::util::DataStream ds {};
 	auto magic = f.Read<uint32_t>();
 	if(magic == MAGIC2) {
 		ReadVersion2(f, ds);
@@ -1447,26 +1447,26 @@ void resource::BinaryKV3::Read(const Resource &resource, ufile::IFile &f)
 	if(magic != MAGIC)
 		throw std::runtime_error {"Invalid KV3 signature " + std::to_string(magic)};
 
-	auto encoding = f.Read<util::GUID>();
-	auto format = f.Read<util::GUID>();
+	auto encoding = f.Read<pragma::util::GUID>();
+	auto format = f.Read<pragma::util::GUID>();
 
 	// Valve's implementation lives in LoadKV3Binary()
 	// KV3_ENCODING_BINARY_BLOCK_COMPRESSED calls CBlockCompress::FastDecompress()
 	// and then it proceeds to call LoadKV3BinaryUncompressed, which should be the same routine for KV3_ENCODING_BINARY_UNCOMPRESSED
 	// Old binary with debug symbols for ref: https://users.alliedmods.net/~asherkin/public/bins/dota_symbols/bin/osx64/libmeshsystem.dylib
 
-	if(util::compare_guid(encoding, KV3_ENCODING_BINARY_BLOCK_COMPRESSED))
+	if(pragma::util::compare_guid(encoding, KV3_ENCODING_BINARY_BLOCK_COMPRESSED))
 		BlockDecompress(f, ds);
-	else if(util::compare_guid(encoding, KV3_ENCODING_BINARY_BLOCK_LZ4))
+	else if(pragma::util::compare_guid(encoding, KV3_ENCODING_BINARY_BLOCK_LZ4))
 		DecompressLZ4(f, ds);
-	else if(util::compare_guid(encoding, KV3_ENCODING_BINARY_UNCOMPRESSED)) {
+	else if(pragma::util::compare_guid(encoding, KV3_ENCODING_BINARY_UNCOMPRESSED)) {
 		auto szCpy = f.GetSize() - f.Tell();
 		ds->Resize(szCpy);
 		f.Read(ds->GetData(), szCpy);
 		ds->SetOffset(0);
 	}
 	else
-		throw new std::runtime_error {"Unrecognised KV3 Encoding: " + util::guid_to_string(encoding)};
+		throw new std::runtime_error {"Unrecognised KV3 Encoding: " + pragma::util::guid_to_string(encoding)};
 
 	auto numStrings = ds->Read<uint32_t>();
 	m_stringArray.reserve(numStrings);
@@ -1503,9 +1503,9 @@ void resource::BinaryKV3::DebugPrint(std::stringstream &ss, const std::string &t
 	ss << t << "}\n";
 }
 BlockType resource::BinaryKV3::GetType() const { return m_blockType; }
-void resource::BinaryKV3::ReadVersion2(ufile::IFile &f, util::DataStream &outData)
+void resource::BinaryKV3::ReadVersion2(ufile::IFile &f, pragma::util::DataStream &outData)
 {
-	auto format = f.Read<util::GUID>();
+	auto format = f.Read<pragma::util::GUID>();
 
 	auto compressionMethod = f.Read<int32_t>();
 	auto countOfBinaryBytes = f.Read<int32_t>();     // how many bytes (binary blobs)
@@ -1562,7 +1562,7 @@ void resource::BinaryKV3::ReadVersion2(ufile::IFile &f, util::DataStream &outDat
 
 	m_data = ParseBinaryKV3(outData, nullptr, true);
 }
-void resource::BinaryKV3::BlockDecompress(ufile::IFile &f, util::DataStream &outData)
+void resource::BinaryKV3::BlockDecompress(ufile::IFile &f, pragma::util::DataStream &outData)
 {
 	// It is flags, right?
 	auto flags = f.Read<std::array<uint8_t, 4>>();
@@ -1650,7 +1650,7 @@ void resource::BinaryKV3::BlockDecompress(ufile::IFile &f, util::DataStream &out
 	outData->SetOffset(0);
 }
 
-void resource::BinaryKV3::DecompressLZ4(ufile::IFile &f, util::DataStream &outData)
+void resource::BinaryKV3::DecompressLZ4(ufile::IFile &f, pragma::util::DataStream &outData)
 {
 	auto uncompressedSize = f.Read<uint32_t>();
 	auto compressedSize = GetSize() - (f.Tell() - GetOffset());
@@ -1667,7 +1667,7 @@ void resource::BinaryKV3::DecompressLZ4(ufile::IFile &f, util::DataStream &outDa
 	outData->SetOffset(0);
 }
 
-std::pair<resource::KVType, resource::KVFlag> resource::BinaryKV3::ReadType(util::DataStream &ds)
+std::pair<resource::KVType, resource::KVFlag> resource::BinaryKV3::ReadType(pragma::util::DataStream &ds)
 {
 	uint8_t databyte;
 	if(m_hasTypesArray)
@@ -1684,7 +1684,7 @@ std::pair<resource::KVType, resource::KVFlag> resource::BinaryKV3::ReadType(util
 		else
 			flagInfo = ds->Read<KVFlag>();
 	}
-	return {static_cast<resource::KVType>(databyte), flagInfo};
+	return {static_cast<KVType>(databyte), flagInfo};
 }
 
 std::shared_ptr<resource::KVValue> resource::BinaryKV3::MakeValue(KVType type, std::shared_ptr<void> data, KVFlag flag)
@@ -1761,7 +1761,7 @@ template<class TKVValue>
 	return std::static_pointer_cast<resource::KVValue>(p);
 }
 #endif
-std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const std::string &name, KVType datatype, KVFlag flagInfo, util::DataStream ds, std::shared_ptr<KVObject> parent)
+std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const std::string &name, KVType datatype, KVFlag flagInfo, pragma::util::DataStream ds, std::shared_ptr<KVObject> parent)
 {
 	auto currentOffset = ds->GetOffset();
 
@@ -1955,13 +1955,13 @@ std::shared_ptr<resource::KVObject> resource::BinaryKV3::ReadBinaryValue(const s
 			break;
 		}
 	default:
-		throw new std::runtime_error {"Unknown KVType " + std::to_string(umath::to_integral(datatype)) + " for field '" + name + "' on byte " + std::to_string(ds->GetOffset() - 1)};
+		throw new std::runtime_error {"Unknown KVType " + std::to_string(pragma::math::to_integral(datatype)) + " for field '" + name + "' on byte " + std::to_string(ds->GetOffset() - 1)};
 	}
 
 	return parent ? parent : nullptr;
 }
 
-std::shared_ptr<resource::KVObject> resource::BinaryKV3::ParseBinaryKV3(util::DataStream &ds, std::shared_ptr<KVObject> parent, bool inArray)
+std::shared_ptr<resource::KVObject> resource::BinaryKV3::ParseBinaryKV3(pragma::util::DataStream &ds, std::shared_ptr<KVObject> parent, bool inArray)
 {
 	std::string name {};
 	if(!inArray) {

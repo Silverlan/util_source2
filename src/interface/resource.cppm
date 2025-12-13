@@ -25,8 +25,8 @@ export namespace source2::resource {
 		const std::vector<std::shared_ptr<Block>> &GetBlocks() const;
 		std::shared_ptr<Block> GetBlock(uint32_t idx) const;
 		bool Read(ufile::IFile &f);
-		std::shared_ptr<source2::resource::Block> ConstructFromType(std::string input);
-		std::shared_ptr<source2::resource::ResourceData> ConstructResourceType();
+		std::shared_ptr<Block> ConstructFromType(std::string input);
+		std::shared_ptr<ResourceData> ConstructResourceType();
 
 		ResourceIntrospectionManifest *GetIntrospectionManifest();
 		const ResourceIntrospectionManifest *GetIntrospectionManifest() const;

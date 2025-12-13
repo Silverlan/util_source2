@@ -153,63 +153,63 @@ std::string source2::to_string(VTexFlags blockType)
 std::string source2::to_string(VTexFormat blockType)
 {
 	switch(blockType) {
-	case VTexFormat::UNKNOWN:
+	case UNKNOWN:
 		return "UNKNOWN";
-	case VTexFormat::DXT1:
+	case DXT1:
 		return "DXT1";
-	case VTexFormat::DXT5:
+	case DXT5:
 		return "DXT5";
-	case VTexFormat::I8:
+	case I8:
 		return "I8";
-	case VTexFormat::RGBA8888:
+	case RGBA8888:
 		return "RGBA8888";
-	case VTexFormat::R16:
+	case R16:
 		return "R16";
-	case VTexFormat::RG1616:
+	case RG1616:
 		return "RG1616";
-	case VTexFormat::RGBA16161616:
+	case RGBA16161616:
 		return "RGBA16161616";
-	case VTexFormat::R16F:
+	case R16F:
 		return "R16F";
-	case VTexFormat::RG1616F:
+	case RG1616F:
 		return "RG1616F";
-	case VTexFormat::RGBA16161616F:
+	case RGBA16161616F:
 		return "RGBA16161616F";
-	case VTexFormat::R32F:
+	case R32F:
 		return "R32F";
-	case VTexFormat::RG3232F:
+	case RG3232F:
 		return "RG3232F";
-	case VTexFormat::RGB323232F:
+	case RGB323232F:
 		return "RGB323232F";
-	case VTexFormat::RGBA32323232F:
+	case RGBA32323232F:
 		return "RGBA32323232F";
-	case VTexFormat::JPEG_RGBA8888:
+	case JPEG_RGBA8888:
 		return "JPEG_RGBA8888";
-	case VTexFormat::PNG_RGBA8888:
+	case PNG_RGBA8888:
 		return "PNG_RGBA8888";
-	case VTexFormat::JPEG_DXT5:
+	case JPEG_DXT5:
 		return "JPEG_DXT5";
-	case VTexFormat::PNG_DXT5:
+	case PNG_DXT5:
 		return "PNG_DXT5";
-	case VTexFormat::BC6H:
+	case BC6H:
 		return "BC6H";
-	case VTexFormat::BC7:
+	case BC7:
 		return "BC7";
-	case VTexFormat::ATI2N:
+	case ATI2N:
 		return "ATI2N";
-	case VTexFormat::IA88:
+	case IA88:
 		return "IA88";
-	case VTexFormat::ETC2:
+	case ETC2:
 		return "ETC2";
-	case VTexFormat::ETC2_EAC:
+	case ETC2_EAC:
 		return "ETC2_EAC";
-	case VTexFormat::R11_EAC:
+	case R11_EAC:
 		return "R11_EAC";
-	case VTexFormat::RG11_EAC:
+	case RG11_EAC:
 		return "RG11_EAC";
-	case VTexFormat::ATI1N:
+	case ATI1N:
 		return "ATI1N";
-	case VTexFormat::BGRA8888:
+	case BGRA8888:
 		return "BGRA8888";
 	default:
 		break;

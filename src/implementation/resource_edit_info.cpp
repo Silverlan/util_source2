@@ -342,7 +342,7 @@ std::shared_ptr<resource::REDIBlock> resource::ResourceEditInfo::ConstructStruct
 	throw new std::invalid_argument {"Unknown struct in REDI block."};
 }
 
-resource::REDIBlock &resource::ResourceEditInfo::GetStruct(REDIStruct type) { return *m_structs.at(umath::to_integral(type)); }
+resource::REDIBlock &resource::ResourceEditInfo::GetStruct(REDIStruct type) { return *m_structs.at(pragma::math::to_integral(type)); }
 BlockType resource::ResourceEditInfo::GetType() const { return BlockType::REDI; }
 void resource::ResourceEditInfo::Read(const Resource &resource, ufile::IFile &f)
 {
@@ -565,8 +565,8 @@ void resource::VBIB::VertexBuffer::ReadVertexAttribute(uint32_t offset, const Ve
 			std::memcpy(shorts.data(), buffer.data() + offset, shorts.size() * sizeof(shorts.front()));
 
 			outData.resize(2);
-			outData.at(0) = umath::float16_to_float32_glm(shorts.at(0));
-			outData.at(1) = umath::float16_to_float32_glm(shorts.at(1));
+			outData.at(0) = pragma::math::float16_to_float32_glm(shorts.at(0));
+			outData.at(1) = pragma::math::float16_to_float32_glm(shorts.at(1));
 			break;
 		}
 	case DXGI_FORMAT::R16G16_UNORM:
@@ -601,7 +601,7 @@ void resource::VBIB::VertexBuffer::ReadVertexAttribute(uint32_t offset, const Ve
 			break;
 		}
 	default:
-		throw std::runtime_error {"Unsupported \"" + attribute.name + "\" DXGI_FORMAT." + std::to_string(umath::to_integral(attribute.type))};
+		throw std::runtime_error {"Unsupported \"" + attribute.name + "\" DXGI_FORMAT." + std::to_string(pragma::math::to_integral(attribute.type))};
 	}
 }
 void resource::VBIB::ReadVertexAttribute(uint32_t offset, const VertexBuffer &vertexBuffer, const VertexAttribute &attribute, std::vector<float> &outData) { vertexBuffer.ReadVertexAttribute(offset, attribute, outData); }

@@ -8,13 +8,13 @@ module;
 module source2;
 
 struct ResourceWrapper {
-	std::unique_ptr<fsys::File> file = nullptr;
+	std::unique_ptr<pragma::fs::File> file = nullptr;
 	std::shared_ptr<source2::resource::Resource> resource = nullptr;
 	std::string basePath;
 };
 static std::unique_ptr<ResourceWrapper> load_resource(const std::string &fileName, const std::optional<std::string> &path)
 {
-	auto fp = filemanager::open_system_file(fileName, filemanager::FileMode::Read | filemanager::FileMode::Binary);
+	auto fp = pragma::fs::open_system_file(fileName, pragma::fs::FileMode::Read | pragma::fs::FileMode::Binary);
 	if(fp == nullptr) {
 		if(path.has_value()) {
 			// Try to find resource relative to model location
@@ -24,18 +24,18 @@ static std::unique_ptr<ResourceWrapper> load_resource(const std::string &fileNam
 		return nullptr;
 	}
 	auto wrapper = std::make_unique<ResourceWrapper>();
-	wrapper->file = std::make_unique<fsys::File>(fp);
+	wrapper->file = std::make_unique<pragma::fs::File>(fp);
 	wrapper->basePath = ufile::get_path_from_filename(fileName);
 	wrapper->resource = source2::load_resource(*wrapper->file, [](const std::string &path) -> std::unique_ptr<ufile::IFile> {
-		auto fp = filemanager::open_system_file(path, filemanager::FileMode::Read | filemanager::FileMode::Binary);
+		auto fp = pragma::fs::open_system_file(path, pragma::fs::FileMode::Read | pragma::fs::FileMode::Binary);
 		if(!fp)
 			return nullptr;
-		return std::make_unique<fsys::File>(fp);
+		return std::make_unique<pragma::fs::File>(fp);
 	});
 	return wrapper->resource ? std::move(wrapper) : nullptr;
 }
 
-using FrameBoneIterator = util::base_type<std::invoke_result_t<decltype(&source2::resource::Frame::GetBones), source2::resource::Frame>>::const_iterator;
+using FrameBoneIterator = pragma::util::base_type<std::invoke_result_t<decltype(&source2::resource::Frame::GetBones), source2::resource::Frame>>::const_iterator;
 using S2Anim = std::shared_ptr<source2::resource::Animation>;
 extern "C" {
 DLLUS2 ResourceWrapper *us2_open_resource(const char *fileName)

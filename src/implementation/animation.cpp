@@ -72,7 +72,7 @@ std::vector<std::shared_ptr<resource::Animation>> resource::Animation::CreateAni
 		return {};
 	auto decoderArray = MakeDecoderArray(animationData.FindArrayValues<IKeyValueCollection *>("m_decoderArray"));
 	auto segmentArray = animationData.FindArrayValues<IKeyValueCollection *>("m_segmentArray");
-	std::vector<std::shared_ptr<resource::Animation>> anims {};
+	std::vector<std::shared_ptr<Animation>> anims {};
 	anims.reserve(segmentArray.size());
 	for(auto *anim : animArray) {
 		auto animStrct = Animation::Create(*anim, decodeKey, decoderArray, segmentArray);
@@ -90,7 +90,7 @@ resource::Animation::Animation(IKeyValueCollection &animDesc, IKeyValueCollectio
 const std::string &resource::Animation::GetName() const { return m_name; }
 float resource::Animation::GetFPS() const { return m_fps; }
 const std::vector<std::shared_ptr<resource::Frame>> &resource::Animation::GetFrames() const { return m_frames; }
-Quat resource::Animation::ReadQuaternion(util::DataStream &ds)
+Quat resource::Animation::ReadQuaternion(pragma::util::DataStream &ds)
 {
 	auto bytes = ds->Read<std::array<uint8_t, 6>>();
 
@@ -104,13 +104,13 @@ Quat resource::Animation::ReadQuaternion(util::DataStream &ds)
 	auto s2 = bytes[3] & 128;
 	auto s3 = bytes[5] & 128;
 
-	auto c = static_cast<float>(umath::sin(umath::pi / 4.0f)) / 16384.0f;
-	auto t1 = static_cast<float>(umath::sin(umath::pi / 4.0f));
+	auto c = static_cast<float>(pragma::math::sin(pragma::math::pi / 4.0f)) / 16384.0f;
+	auto t1 = static_cast<float>(pragma::math::sin(pragma::math::pi / 4.0f));
 	auto x = (bytes[1] & 64) == 0 ? c * (i1 - 16384) : c * i1;
 	auto y = (bytes[3] & 64) == 0 ? c * (i2 - 16384) : c * i2;
 	auto z = (bytes[5] & 64) == 0 ? c * (i3 - 16384) : c * i3;
 
-	auto w = static_cast<float>(umath::sqrt(1 - (x * x) - (y * y) - (z * z)));
+	auto w = static_cast<float>(pragma::math::sqrt(1 - (x * x) - (y * y) - (z * z)));
 
 	// Apply sign 3
 	if(s3 == 128)
@@ -148,7 +148,7 @@ void resource::Animation::ReadSegment(int64_t frame, IKeyValueCollection &segmen
 	auto *container = segment.FindBinaryBlob("m_container");
 	if(container == nullptr)
 		return;
-	util::DataStream ds {container->data(), static_cast<uint32_t>(container->size())};
+	pragma::util::DataStream ds {container->data(), static_cast<uint32_t>(container->size())};
 	ds->SetOffset(0);
 	auto elementIndexArray = dataChannel->FindArrayValues<int32_t>("m_nElementIndexArray");
 	auto numChannelElements = decodeKey.FindValue<int32_t>("m_nChannelElements", 0);
@@ -201,7 +201,7 @@ void resource::Animation::ReadSegment(int64_t frame, IKeyValueCollection &segmen
 					auto x = ds->Read<uint16_t>();
 					auto y = ds->Read<uint16_t>();
 					auto z = ds->Read<uint16_t>();
-					Vector3 pos {umath::float16_to_float32_glm(x), umath::float16_to_float32_glm(y), umath::float16_to_float32_glm(z)};
+					Vector3 pos {pragma::math::float16_to_float32_glm(x), pragma::math::float16_to_float32_glm(y), pragma::math::float16_to_float32_glm(z)};
 					outFrame.SetPosition(boneNames.at(bone), pos);
 				}
 				break;
@@ -221,7 +221,7 @@ void resource::Animation::ConstructFromDesc(IKeyValueCollection &animDesc, IKeyV
 	m_name = animDesc.FindValue<std::string>("m_name", "");
 	m_fps = animDesc.FindValue<float>("fps", 0.f);
 
-	source2::resource::IKeyValueCollection *pData = nullptr;
+	IKeyValueCollection *pData = nullptr;
 	auto aData = animDesc.FindArrayValues<IKeyValueCollection *>("m_pData");
 	if(aData.empty())
 		pData = animDesc.FindSubCollection("m_pData");

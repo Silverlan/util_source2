@@ -180,11 +180,11 @@ export namespace source2::resource {
 		virtual void DebugPrint(std::stringstream &ss, const std::string &t = "") const override;
 		virtual BlockType GetType() const override;
 
-		const std::shared_ptr<resource::IKeyValueCollection> &GetData() const;
-		const std::shared_ptr<resource::ResourceData> &GetBakingData() const;
+		const std::shared_ptr<IKeyValueCollection> &GetData() const;
+		const std::shared_ptr<ResourceData> &GetBakingData() const;
 	  protected:
-		std::shared_ptr<resource::IKeyValueCollection> m_data = nullptr;
-		std::shared_ptr<resource::ResourceData> m_bakingData = nullptr;
+		std::shared_ptr<IKeyValueCollection> m_data = nullptr;
+		std::shared_ptr<ResourceData> m_bakingData = nullptr;
 		BlockType m_type = BlockType::None;
 		std::string m_introspectionStructName;
 	};
@@ -357,7 +357,7 @@ export namespace source2::resource {
 		std::vector<std::shared_ptr<Entity>> GetEntities() const;
 	  private:
 		std::shared_ptr<Entity> ParseEntityProperties(const std::vector<uint8_t> &bytes) const;
-		void ReadTypedValue(util::DataStream &ds, uint32_t keyHash, const std::optional<std::string> &keyName, std::unordered_map<uint32_t, EntityProperty> &properties) const;
+		void ReadTypedValue(pragma::util::DataStream &ds, uint32_t keyHash, const std::optional<std::string> &keyName, std::unordered_map<uint32_t, EntityProperty> &properties) const;
 	};
 
 	class DLLUS2 SoundStackScript : public ResourceData {};
@@ -425,7 +425,7 @@ export namespace source2::resource {
 		Animation(IKeyValueCollection &animDesc, IKeyValueCollection &decodeKey, const std::vector<AnimDecoderType> &decoderArray, const std::vector<IKeyValueCollection *> &segmentArray);
 		void ConstructFromDesc(IKeyValueCollection &animDesc, IKeyValueCollection &decodeKey, const std::vector<AnimDecoderType> &decoderArray, const std::vector<IKeyValueCollection *> &segmentArray);
 		void ReadSegment(int64_t frame, IKeyValueCollection &segment, IKeyValueCollection &decodeKey, const std::vector<AnimDecoderType> &decoderArray, Frame &outFrame, uint32_t numFrames);
-		static Quat ReadQuaternion(util::DataStream &ds);
+		static Quat ReadQuaternion(pragma::util::DataStream &ds);
 		static std::vector<AnimDecoderType> MakeDecoderArray(const std::vector<IKeyValueCollection *> &decoderArray);
 		std::string m_name;
 		float m_fps = 0.f;
@@ -583,7 +583,7 @@ export namespace source2::resource {
 
 	class DLLUS2 Texture : public ResourceData {
 	  public:
-		static void UncompressBC7(uint32_t RowBytes, util::DataStream &ds, std::vector<uint8_t> &data, int w, int h, bool hemiOctRB, bool invert);
+		static void UncompressBC7(uint32_t RowBytes, pragma::util::DataStream &ds, std::vector<uint8_t> &data, int w, int h, bool hemiOctRB, bool invert);
 		uint16_t GetVersion() const;
 		uint16_t GetWidth() const;
 		uint16_t GetHeight() const;
@@ -610,7 +610,7 @@ export namespace source2::resource {
 		uint16_t m_width = 0u;
 		uint16_t m_height = 0u;
 		uint16_t m_depth = 0u;
-		VTexFormat m_format = VTexFormat::UNKNOWN;
+		VTexFormat m_format = UNKNOWN;
 		uint8_t m_mipMapCount = 0u;
 		uint32_t m_picmip0Res = 0u;
 		uint64_t m_dataOffset = 0ull;
@@ -778,10 +778,10 @@ export namespace source2::resource {
 
 	class DLLUS2 BinaryKV3 : public ResourceData {
 	  public:
-		static const util::GUID KV3_ENCODING_BINARY_BLOCK_COMPRESSED;
-		static const util::GUID KV3_ENCODING_BINARY_UNCOMPRESSED;
-		static const util::GUID KV3_ENCODING_BINARY_BLOCK_LZ4;
-		static const util::GUID KV3_FORMAT_GENERIC;
+		static const pragma::util::GUID KV3_ENCODING_BINARY_BLOCK_COMPRESSED;
+		static const pragma::util::GUID KV3_ENCODING_BINARY_UNCOMPRESSED;
+		static const pragma::util::GUID KV3_ENCODING_BINARY_BLOCK_LZ4;
+		static const pragma::util::GUID KV3_FORMAT_GENERIC;
 		static constexpr int32_t MAGIC = 0x03564B56;  // VKV3 (3 isn't ascii, its 0x03)
 		static constexpr int32_t MAGIC2 = 0x4B563301; // KV3\x01
 		static const std::array<uint8_t, 16> ENCODING;
@@ -806,12 +806,12 @@ export namespace source2::resource {
 		//	static std::shared_ptr<KVValue> MakeValueFromPtr(KVType type, nullptr_t nptr, KVFlag flag);
 		static KVType ConvertBinaryOnlyKVType(KVType type);
 		static std::shared_ptr<KVValue> MakeValue(KVType type, std::shared_ptr<void> data, KVFlag flag);
-		void ReadVersion2(ufile::IFile &f, util::DataStream &outData);
-		void BlockDecompress(ufile::IFile &f, util::DataStream &outData);
-		void DecompressLZ4(ufile::IFile &f, util::DataStream &outData);
-		std::pair<KVType, KVFlag> ReadType(util::DataStream &ds);
-		std::shared_ptr<KVObject> ReadBinaryValue(const std::string &name, KVType datatype, KVFlag flagInfo, util::DataStream ds, std::shared_ptr<KVObject> optParent);
-		std::shared_ptr<KVObject> ParseBinaryKV3(util::DataStream &ds, std::shared_ptr<KVObject> optParent, bool inArray = false);
+		void ReadVersion2(ufile::IFile &f, pragma::util::DataStream &outData);
+		void BlockDecompress(ufile::IFile &f, pragma::util::DataStream &outData);
+		void DecompressLZ4(ufile::IFile &f, pragma::util::DataStream &outData);
+		std::pair<KVType, KVFlag> ReadType(pragma::util::DataStream &ds);
+		std::shared_ptr<KVObject> ReadBinaryValue(const std::string &name, KVType datatype, KVFlag flagInfo, pragma::util::DataStream ds, std::shared_ptr<KVObject> optParent);
+		std::shared_ptr<KVObject> ParseBinaryKV3(pragma::util::DataStream &ds, std::shared_ptr<KVObject> optParent, bool inArray = false);
 		int64_t m_currentBinaryBytesOffset = -1;
 		int64_t m_currentEightBytesOffset = -1;
 		int64_t m_currentTypeIndex = 0;
@@ -1009,9 +1009,9 @@ std::optional<T1> source2::resource::cast_to_type(const T0 &v)
 	}
 	else if constexpr(std::is_same_v<T0, std::string>) {
 		if constexpr(std::is_integral_v<T1>)
-			return ustring::to_int(v);
+			return pragma::string::to_int(v);
 		else if constexpr(std::is_arithmetic_v<T1>)
-			return ustring::to_float(v);
+			return pragma::string::to_float(v);
 		else if constexpr(std::is_same_v<T1, Vector3>)
 			return uvec::create(v);
 		else if constexpr(std::is_same_v<T1, EulerAngles>)

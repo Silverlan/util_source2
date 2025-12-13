@@ -22,7 +22,7 @@ export namespace source2::resource {
 		virtual void Read(const Resource &resource, ufile::IFile &f) override;
 		virtual void DebugPrint(std::stringstream &ss, const std::string &t = "") const override;
 	  private:
-		std::array<std::shared_ptr<REDIBlock>, umath::to_integral(REDIStruct::Count)> m_structs = {};
+		std::array<std::shared_ptr<REDIBlock>, pragma::math::to_integral(REDIStruct::Count)> m_structs = {};
 	};
 
 	class DLLUS2 ResourceExtRefList : public Block {

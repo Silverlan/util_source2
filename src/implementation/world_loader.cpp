@@ -35,7 +35,7 @@ void resource::WorldNode::WorldNode::Load(Resource &resource, Scene &scene)
 		return;
 	auto worldLayers = data->FindArrayValues<std::string>("m_layerNames");
 	auto sceneObjectLayerIndices = data->FindArrayValues<int32_t>("m_sceneObjectLayerIndices");
-	auto sceneObjects = data->FindArrayValues<resource::IKeyValueCollection *>("m_sceneObjects");
+	auto sceneObjects = data->FindArrayValues<IKeyValueCollection *>("m_sceneObjects");
 	uint32_t i = 0;
 	for(auto *sceneObject : sceneObjects) {
 		int32_t layerIndex = (i < sceneObjectLayerIndices.size()) ? sceneObjectLayerIndices.at(i) : -1;
@@ -53,12 +53,12 @@ void resource::WorldNode::WorldNode::Load(Resource &resource, Scene &scene)
 
 		if(renderableModel.has_value()) {
 			auto newResource = resource.LoadResource(*renderableModel + "_c");
-			auto *model = newResource ? dynamic_cast<resource::Model *>(newResource->FindBlock(BlockType::DATA)) : nullptr;
+			auto *model = newResource ? dynamic_cast<Model *>(newResource->FindBlock(BlockType::DATA)) : nullptr;
 			if(model == nullptr)
 				continue;
 
 			// TODO
-			auto modelNode = std::make_shared<resource::ModelSceneNode>(scene, newResource, *model);
+			auto modelNode = std::make_shared<ModelSceneNode>(scene, newResource, *model);
 			modelNode->SetTransform(matrix);
 			modelNode->SetLayerName(worldLayers.at(layerIndex));
 			modelNode->SetTint(tintColor);
@@ -73,8 +73,8 @@ void resource::WorldNode::WorldNode::Load(Resource &resource, Scene &scene)
 			if(newResource == nullptr)
 				continue;
 
-			auto mesh = resource::Mesh::Create(*newResource);
-			auto meshSceneNode = std::make_shared<resource::MeshSceneNode>(scene, newResource, *mesh);
+			auto mesh = Mesh::Create(*newResource);
+			auto meshSceneNode = std::make_shared<MeshSceneNode>(scene, newResource, *mesh);
 			meshSceneNode->SetTransform(matrix);
 			meshSceneNode->SetTint(tintColor);
 			meshSceneNode->SetLayerName(worldLayers.at(layerIndex));

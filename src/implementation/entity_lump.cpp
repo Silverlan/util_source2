@@ -60,7 +60,7 @@ std::unordered_map<std::string, std::string> resource::Entity::GetKeyValues() co
 }
 resource::EntityProperty *resource::Entity::FindProperty(const std::string &key)
 {
-	auto hash = source2::murmur2::hash(key, MURMUR2_SEED);
+	auto hash = murmur2::hash(key, MURMUR2_SEED);
 	auto it = m_properties.find(hash);
 	return (it != m_properties.end()) ? &it->second : nullptr;
 }
@@ -79,7 +79,7 @@ std::vector<std::shared_ptr<resource::Entity>> resource::EntityLump::GetEntities
 	auto *data = GetData().get();
 	if(data == nullptr)
 		return {};
-	std::vector<std::shared_ptr<resource::Entity>> ents {};
+	std::vector<std::shared_ptr<Entity>> ents {};
 	auto entityKeyValues = data->FindArrayValues<IKeyValueCollection *>("m_entityKeyValues");
 	ents.reserve(entityKeyValues.size());
 	for(auto &kv : entityKeyValues) {
@@ -94,7 +94,7 @@ std::vector<std::shared_ptr<resource::Entity>> resource::EntityLump::GetEntities
 }
 std::shared_ptr<resource::Entity> resource::EntityLump::ParseEntityProperties(const std::vector<uint8_t> &bytes) const
 {
-	util::DataStream ds {const_cast<uint8_t *>(bytes.data()), static_cast<uint32_t>(bytes.size())};
+	pragma::util::DataStream ds {const_cast<uint8_t *>(bytes.data()), static_cast<uint32_t>(bytes.size())};
 	ds->SetOffset(0);
 	auto a = ds->Read<uint32_t>();
 	if(a != 1)
@@ -115,7 +115,7 @@ std::shared_ptr<resource::Entity> resource::EntityLump::ParseEntityProperties(co
 	}
 	return Entity::Create(properties);
 }
-void resource::EntityLump::ReadTypedValue(util::DataStream &ds, uint32_t keyHash, const std::optional<std::string> &keyName, std::unordered_map<uint32_t, EntityProperty> &properties) const
+void resource::EntityLump::ReadTypedValue(pragma::util::DataStream &ds, uint32_t keyHash, const std::optional<std::string> &keyName, std::unordered_map<uint32_t, EntityProperty> &properties) const
 {
 	auto type = ds->Read<EntityProperty::Type>();
 	EntityProperty property {};
@@ -146,7 +146,7 @@ void resource::EntityLump::ReadTypedValue(util::DataStream &ds, uint32_t keyHash
 		property.data = std::make_shared<std::string>(ds->ReadString()); // null term variable
 		break;
 	default:
-		throw std::runtime_error {"Unknown type " + std::to_string(umath::to_integral(type))};
+		throw std::runtime_error {"Unknown type " + std::to_string(pragma::math::to_integral(type))};
 	}
 	properties.insert(std::make_pair(keyHash, property));
 }
