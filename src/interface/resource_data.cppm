@@ -1003,7 +1003,7 @@ std::optional<T1> source2::resource::cast_to_type(const T0 &v)
 		if constexpr(std::is_arithmetic_v<T1>)
 			return static_cast<T1>(v);
 		else if constexpr(std::is_same_v<T1, std::string>)
-			return std::to_string(v);
+			return pragma::util::to_string(v);
 		else
 			return {};
 	}
@@ -1023,7 +1023,7 @@ std::optional<T1> source2::resource::cast_to_type(const T0 &v)
 		if constexpr(std::is_same_v<T1, Vector3>) {
 			Vector3 result {};
 			for(uint8_t i = 0; i < 3; ++i) {
-				auto vc = IKeyValueCollection::template FindValue<float>(v, std::to_string(i));
+				auto vc = IKeyValueCollection::template FindValue<float>(v, pragma::util::to_string(i));
 				if(vc.has_value() == false)
 					continue;
 				result[i] = *vc;
@@ -1033,7 +1033,7 @@ std::optional<T1> source2::resource::cast_to_type(const T0 &v)
 		if constexpr(std::is_same_v<T1, Vector4>) {
 			Vector4 result {};
 			for(uint8_t i = 0; i < 4; ++i) {
-				auto vc = IKeyValueCollection::template FindValue<float>(v, std::to_string(i));
+				auto vc = IKeyValueCollection::template FindValue<float>(v, pragma::util::to_string(i));
 				if(vc.has_value() == false)
 					continue;
 				result[i] = *vc;
@@ -1044,7 +1044,7 @@ std::optional<T1> source2::resource::cast_to_type(const T0 &v)
 			Quat result {};
 			for(auto i : {3, 0, 1, 2}) // Source has components in order xyzw, glm in wxyz
 			{
-				auto vc = IKeyValueCollection::template FindValue<float>(v, std::to_string(i));
+				auto vc = IKeyValueCollection::template FindValue<float>(v, pragma::util::to_string(i));
 				if(vc.has_value() == false)
 					continue;
 				result[i] = *vc;
@@ -1054,7 +1054,7 @@ std::optional<T1> source2::resource::cast_to_type(const T0 &v)
 		else if constexpr(std::is_same_v<T1, Mat4>) {
 			auto result = umat::identity();
 			for(uint8_t i = 0; i < 4; ++i) {
-				auto vec = v.template FindValue<Vector4>(std::to_string(i));
+				auto vec = v.template FindValue<Vector4>(pragma::util::to_string(i));
 				if(vec.has_value() == false)
 					continue;
 				for(uint8_t j = 0; j < 4; ++j)
